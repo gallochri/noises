@@ -75,7 +75,8 @@ click intelligente ed esportazione di basi.
 - **Pre-conteggio** di 1 o 2 battute, che porta sempre sul primo tempo della battuta.
 - **Esportazione** in MP3, WAV, FLAC o MIDI delle sole tracce attive (per esempio la base senza voce), del progetto intero o della selezione, con **click e pre-conteggio** inclusi per creare basi.
 
-### Account
+### Account e lingua
+- **Interfaccia in italiano e in inglese**: si sceglie dal menu dell'account (🌐) o dalla schermata di accesso; la prima volta segue la lingua del browser. Anche le email di conferma e di reset arrivano nella lingua scelta.
 - **Registrazione con verifica dell'email**, accesso, password dimenticata con reset via email, cambio password.
 - **Accesso con Google** (OAuth 2.0 / OpenID Connect con PKCE).
 - **Più utenti**: ognuno vede solo i propri brani, progetti, scalette e playlist.

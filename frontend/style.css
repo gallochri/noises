@@ -906,3 +906,5 @@ body.drawer-open .drawer-scrim { opacity: 1; pointer-events: auto; }
 .sel-nudge button.beat { color: var(--accent-2); }
 .regions-btn { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .regions-btn.on { color: var(--accent-2); font-weight: 600; }
+.auth-lang { text-align: center; margin-top: 4px; }
+.auth-lang .link { font-size: 12px; color: var(--muted); }

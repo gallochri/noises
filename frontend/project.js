@@ -27,9 +27,9 @@ function emptyAudio() {
 
 function trackTitle(t) {
   if (t.label) return t.label;
-  if (isEmptyTrack(t)) return 'Traccia vuota';
+  if (isEmptyTrack(t)) return T('Traccia vuota');
   const s = songById(t.song);
-  const name = s ? s.name : 'Brano rimosso';
+  const name = s ? s.name : T('Brano rimosso');
   return t.part === 'original' ? name : `${LABELS[t.part] || t.part} · ${name}`;
 }
 
@@ -414,7 +414,7 @@ async function duplicateTrack(t) {
     }
     pushUndo('Duplica traccia');
     const copy = engine.addTrack({ name: newTrackName(), song: t.song, part: t.part, rec: t.rec,
-      label: `${trackTitle(t)} (copia)`, clips: t.clips.map((c) => ({ ...c, id: newClipId() })), ...audio });
+      label: tr(`${trackTitle(t)} (copia)`), clips: t.clips.map((c) => ({ ...c, id: newClipId() })), ...audio });
     engine.tracks.splice(engine.tracks.indexOf(copy), 1);
     engine.tracks.splice(engine.tracks.indexOf(t) + 1, 0, copy);
     Object.assign(copy, { muted: t.muted, solo: t.solo, volume: t.volume });

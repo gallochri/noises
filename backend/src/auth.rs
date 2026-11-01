@@ -124,7 +124,7 @@ impl Mailer {
         Ok(Mailer { transport: Some(builder.build()), from })
     }
 
-    async fn send(&self, to: &str, subject: &str, text: &str, link: &str) -> anyhow::Result<()> {
+    async fn send(&self, to: &str, subject: &str, text: &str, link: &str, en: bool) -> anyhow::Result<()> {
         let Some(t) = &self.transport else {
             warn!("[email non inviata — SMTP assente] a {to}: {subject} → {link}");
             return Ok(());
@@ -134,8 +134,9 @@ impl Mailer {
              <h2 style=\"color:#7c5cff\">Noises</h2><p>{}</p>\
              <p><a href=\"{link}\" style=\"display:inline-block;padding:10px 18px;background:#7c5cff;\
              color:#fff;border-radius:8px;text-decoration:none\">{subject}</a></p>\
-             <p style=\"color:#888;font-size:12px\">Se il pulsante non funziona copia questo indirizzo:<br>{link}</p></div>",
-            text.replace('\n', "<br>")
+             <p style=\"color:#888;font-size:12px\">{}<br>{link}</p></div>",
+            text.replace('\n', "<br>"),
+            if en { "If the button doesn't work, copy this address:" } else { "Se il pulsante non funziona copia questo indirizzo:" }
         );
         let msg = Message::builder()
             .from(self.from.clone())
@@ -340,31 +341,32 @@ impl Auth {
         self.failures.lock().unwrap().remove(key);
     }
 
-    async fn send_verification(&self, user: &User) -> anyhow::Result<()> {
+    async fn send_verification(&self, user: &User, en: bool) -> anyhow::Result<()> {
         let token = self.new_token(&user.id, "verify", VERIFY_TTL)?;
         let link = format!("{}/api/auth/verify?token={token}", self.config.public_url);
-        self.mailer
-            .send(
-                &user.email,
-                "Conferma il tuo account",
-                &format!("Ciao {},\nper attivare il tuo account Noises conferma l'indirizzo email.\nIl link scade tra 48 ore.", user.name),
-                &link,
-            )
-            .await
+        let (subject, text) = if en {
+            ("Confirm your account", format!("Hi {},\nto activate your Noises account please confirm your email address.\nThe link expires in 48 hours.", user.name))
+        } else {
+            ("Conferma il tuo account", format!("Ciao {},\nper attivare il tuo account Noises conferma l'indirizzo email.\nIl link scade tra 48 ore.", user.name))
+        };
+        self.mailer.send(&user.email, subject, &text, &link, en).await
     }
 
-    async fn send_reset(&self, user: &User) -> anyhow::Result<()> {
+    async fn send_reset(&self, user: &User, en: bool) -> anyhow::Result<()> {
         let token = self.new_token(&user.id, "reset", RESET_TTL)?;
         let link = format!("{}/?reset={token}", self.config.public_url);
-        self.mailer
-            .send(
-                &user.email,
-                "Reimposta la password",
-                &format!("Ciao {},\nabbiamo ricevuto una richiesta di reimpostazione della password.\nIl link scade tra un'ora. Se non sei stato tu, ignora questo messaggio.", user.name),
-                &link,
-            )
-            .await
+        let (subject, text) = if en {
+            ("Reset your password", format!("Hi {},\nwe received a request to reset your password.\nThe link expires in one hour. If this wasn't you, ignore this message.", user.name))
+        } else {
+            ("Reimposta la password", format!("Ciao {},\nabbiamo ricevuto una richiesta di reimpostazione della password.\nIl link scade tra un'ora. Se non sei stato tu, ignora questo messaggio.", user.name))
+        };
+        self.mailer.send(&user.email, subject, &text, &link, en).await
     }
+}
+
+/// Lingua dell'interfaccia comunicata dal browser (intestazione X-Noises-Lang): true = inglese.
+fn wants_en(headers: &HeaderMap) -> bool {
+    headers.get("x-noises-lang").and_then(|v| v.to_str().ok()) == Some("en")
 }
 
 async fn hash_password(pw: String) -> anyhow::Result<String> {
@@ -515,7 +517,7 @@ pub struct RegisterBody {
     name: Option<String>,
 }
 
-pub async fn register(State(st): State<AppState>, Json(b): Json<RegisterBody>) -> Result<Response, AppError> {
+pub async fn register(State(st): State<AppState>, headers: HeaderMap, Json(b): Json<RegisterBody>) -> Result<Response, AppError> {
     let auth = &st.0.auth;
     if !auth.config.allow_registration {
         return Err(AppError(StatusCode::FORBIDDEN, "la registrazione è disabilitata".into()));
@@ -544,7 +546,7 @@ pub async fn register(State(st): State<AppState>, Json(b): Json<RegisterBody>) -
     if verified {
         return with_session(&st, &user, Json(&user).into_response());
     }
-    if let Err(e) = auth.send_verification(&user).await {
+    if let Err(e) = auth.send_verification(&user, wants_en(&headers)).await {
         warn!("invio verifica a {}: {e:#}", user.email);
     }
     Ok(msg("Se l'indirizzo è valido riceverai un'email per confermare l'account.").into_response())
@@ -571,11 +573,11 @@ pub struct EmailBody {
     email: String,
 }
 
-pub async fn resend(State(st): State<AppState>, Json(b): Json<EmailBody>) -> Result<Json<Msg>, AppError> {
+pub async fn resend(State(st): State<AppState>, headers: HeaderMap, Json(b): Json<EmailBody>) -> Result<Json<Msg>, AppError> {
     let auth = &st.0.auth;
     if let Some(u) = auth.user_where("email", b.email.trim())? {
         if !u.email_verified {
-            if let Err(e) = auth.send_verification(&u).await {
+            if let Err(e) = auth.send_verification(&u, wants_en(&headers)).await {
                 warn!("invio verifica a {}: {e:#}", u.email);
             }
         }
@@ -632,10 +634,10 @@ pub async fn logout(State(st): State<AppState>, headers: HeaderMap) -> Result<Re
     Ok(resp)
 }
 
-pub async fn forgot(State(st): State<AppState>, Json(b): Json<EmailBody>) -> Result<Json<Msg>, AppError> {
+pub async fn forgot(State(st): State<AppState>, headers: HeaderMap, Json(b): Json<EmailBody>) -> Result<Json<Msg>, AppError> {
     let auth = &st.0.auth;
     if let Some(u) = auth.user_where("email", b.email.trim())? {
-        if let Err(e) = auth.send_reset(&u).await {
+        if let Err(e) = auth.send_reset(&u, wants_en(&headers)).await {
             warn!("invio reset a {}: {e:#}", u.email);
         }
     }

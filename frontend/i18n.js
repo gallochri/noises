@@ -1,0 +1,800 @@
+'use strict';
+// Lingua dell'interfaccia: italiano (testi nel codice) o inglese.
+// I testi dell'interfaccia sono scritti in italiano nel codice e nell'HTML: in inglese un dizionario
+// li traduce quando entrano nel DOM (testi e attributi title/placeholder/aria-label/alt), nei dialoghi
+// alert/confirm/prompt e nei messaggi d'errore del server. Le frasi con parti variabili usano {…}.
+// Dove un testo diventa un dato (nomi predefiniti, etichette disegnate) si usa T() esplicitamente.
+
+const LANG = (() => {
+  try {
+    const saved = localStorage.getItem('noises.lang');
+    if (saved === 'it' || saved === 'en') return saved;
+  } catch {}
+  return /^it\b/i.test(navigator.language || '') ? 'it' : 'en';
+})();
+document.documentElement.lang = LANG;
+
+function setLang(lang) {
+  try { localStorage.setItem('noises.lang', lang); } catch {}
+  location.reload();
+}
+
+const EN = {
+  // ---------------------------------------------------------------- generale
+  'Noises — Stem Splitter': 'Noises — Stem Splitter',
+  'Caricamento…': 'Loading…',
+  'Annulla': 'Cancel',
+  'Salva': 'Save',
+  'Chiudi': 'Close',
+  'Chiudi (Esc)': 'Close (Esc)',
+  'oppure': 'or',
+  'Nome': 'Name',
+  'errore di rete': 'network error',
+  'Errore: {…}': 'Error: {…}',
+  'sconosciuto': 'unknown',
+  'Libreria': 'Library',
+  '♫ Libreria': '♫ Library',
+  'Progetti': 'Projects',
+  'Progetto': 'Project',
+  'Scalette': 'Setlists',
+  'Scalette: progetti da suonare in sequenza': 'Setlists: projects to play in sequence',
+  'Account': 'Account',
+  'Brani': 'Songs',
+  'Playlist': 'Playlists',
+  'Playlist…': 'Playlists…',
+  'Rinomina': 'Rename',
+  'Elimina': 'Delete',
+  'Duplica': 'Duplicate',
+  'Esporta': 'Export',
+  '⤓ Esporta': '⤓ Export',
+  'Volume': 'Volume',
+  'Muto': 'Mute',
+  'Solo': 'Solo',
+  'Altre azioni': 'More actions',
+
+  // ---------------------------------------------------------------- accesso
+  'Separa le tracce, studia e suona i tuoi brani.': 'Split the tracks, practice and play your songs.',
+  'Email': 'Email',
+  'Password': 'Password',
+  'Accedi': 'Sign in',
+  'Password dimenticata?': 'Forgot password?',
+  'Crea un account': 'Create an account',
+  'Ripeti la password': 'Repeat the password',
+  "Almeno 8 caratteri, con lettere e almeno un numero o simbolo. Riceverai un'email per confermare l'indirizzo.":
+    "At least 8 characters, with letters and at least one number or symbol. You'll get an email to confirm your address.",
+  'Registrati': 'Sign up',
+  'Hai già un account? Accedi': 'Already have an account? Sign in',
+  "Inserisci l'email dell'account: ti invieremo un link per reimpostare la password.":
+    "Enter your account email: we'll send you a link to reset your password.",
+  'Invia il link': 'Send the link',
+  "Torna all'accesso": 'Back to sign in',
+  'Scegli una nuova password.': 'Choose a new password.',
+  'Nuova password': 'New password',
+  'Imposta la password': 'Set password',
+  'Accedi con Google': 'Sign in with Google',
+  'Accesso con Google annullato.': 'Google sign-in canceled.',
+  'Accesso con Google non riuscito. Riprova.': 'Google sign-in failed. Please try again.',
+  'Accesso non riuscito.': 'Sign-in failed.',
+  'Richiesta di accesso non valida, riprova.': 'Invalid sign-in request, please try again.',
+  'Sessione di accesso scaduta, riprova.': 'Sign-in session expired, please try again.',
+  'Il link di conferma è scaduto o già usato. Accedi per riceverne uno nuovo.': 'The confirmation link has expired or was already used. Sign in to get a new one.',
+  'Invia di nuovo il link': 'Send the link again',
+  '{…} Poi torna qui per accedere.': '{…} Then come back here to sign in.',
+  'Le due password non coincidono.': "The two passwords don't match.",
+  'Email confermata: benvenuto in Noises!': 'Email confirmed: welcome to Noises!',
+  'Cambia password': 'Change password',
+  'Imposta una password': 'Set a password',
+  'Password attuale': 'Current password',
+  'Ripeti la nuova password': 'Repeat the new password',
+  'Password…': 'Password…',
+  '⎋ Esci': '⎋ Sign out',
+  'amministratore': 'administrator',
+  'password': 'password',
+  'Google': 'Google',
+
+  // ---------------------------------------------------------------- libreria e playlist
+  'Cerca brano…': 'Search songs…',
+  'Tutti i brani': 'All songs',
+  'Nuova playlist': 'New playlist',
+  'Nessuna playlist': 'No playlists',
+  'Aggiungi a playlist': 'Add to playlist',
+  '＋ Nuova playlist…': '＋ New playlist…',
+  'Nome della nuova playlist:': 'Name of the new playlist:',
+  'Nuovo nome della playlist:': 'New playlist name:',
+  'Elimina playlist': 'Delete playlist',
+  'Eliminare la playlist "{…}"?\nI brani restano nella libreria.': 'Delete the playlist "{…}"?\nThe songs stay in the library.',
+  'Elimina dalla libreria': 'Delete from library',
+  'Eliminare definitivamente "{…}" dalla libreria?\nVerrà rimosso anche dalle playlist.\nLe sue tracce verranno tolte dai progetti che lo usano.':
+    'Permanently delete "{…}" from the library?\nIt will also be removed from playlists.\nIts tracks will be removed from the projects that use it.',
+  'Eliminare definitivamente "{…}" dalla libreria?\nLe sue tracce verranno tolte dai progetti che lo usano.':
+    'Permanently delete "{…}" from the library?\nIts tracks will be removed from the projects that use it.',
+  'Nessun brano caricato': 'No songs uploaded',
+  'Nessun brano corrisponde alla ricerca': 'No songs match your search',
+  'Playlist vuota: aggiungi brani con ⋯ o trascinandoli sulla playlist': 'Empty playlist: add songs with ⋯ or by dragging them onto the playlist',
+  'Trascina nella timeline di un progetto (doppio clic: aggiungi alla testina)': "Drag into a project's timeline (double-click: add at the playhead)",
+  'Trascina un brano nella timeline o fai doppio clic per aggiungerlo al progetto.': 'Drag a song into the timeline or double-click it to add it to the project.',
+  'Non separato': 'Not split',
+  'In coda…': 'Queued…',
+  'Download {…}%': 'Download {…}%',
+  'Separazione {…}%': 'Splitting {…}%',
+  'Separato': 'Split',
+  'Separato · {…}…': 'Split · {…}…',
+  'Analisi accordi': 'Chord analysis',
+  'Trascrizione note': 'Note transcription',
+  'Riprova la separazione': 'Retry the separation',
+  'Separa le tracce in anticipo (si può fare anche dalla timeline)': 'Split the tracks in advance (you can also do it from the timeline)',
+  '{…} brani in attesa': '{…} songs waiting',
+  '⑂ Separa tutti': '⑂ Split all',
+  '⑂ Separa tutti ({…})': '⑂ Split all ({…})',
+  'Separa tutti i brani in attesa': 'Split all waiting songs',
+  'Importa da YouTube': 'Import from YouTube',
+  'Link YouTube…': 'YouTube link…',
+  '▶ Importa': '▶ Import',
+  'Trascina qui i file audio': 'Drop audio files here',
+  'sfoglia': 'browse',
+  'Caricamento di "{…}" fallito: {…}': 'Upload of "{…}" failed: {…}',
+  'Caricamento di "{…}" nella libreria…': 'Uploading "{…}" to the library…',
+  'Non sono file audio: {…}': 'Not audio files: {…}',
+
+  // ---------------------------------------------------------------- separazione (dialogo)
+  'Separazione delle tracce': 'Track separation',
+  '4 tracce': '4 tracks',
+  '4 tracce HQ': '4 tracks HQ',
+  '6 tracce': '6 tracks',
+  '4 tracce — veloce': '4 tracks — fast',
+  '4 tracce — alta qualità (4× più lento)': '4 tracks — high quality (4× slower)',
+  '6 tracce (+ chitarra, piano)': '6 tracks (+ guitar, piano)',
+  'Analisi dopo la separazione': 'Analysis after separation',
+  'Riconoscimento accordi (pochi secondi)': 'Chord recognition (a few seconds)',
+  'Ritmo e trascrizione note (~1 minuto): click, pre-conteggio, spartito, MIDI': 'Rhythm and note transcription (~1 minute): click, count-in, sheet music, MIDI',
+  "Le analisi non scelte si possono avviare anche dopo, dall'editor.": 'Analyses you skip can also be started later from the editor.',
+  '⑂ Separa': '⑂ Split',
+  'Separa le tracce': 'Split the tracks',
+
+  // ---------------------------------------------------------------- progetti
+  'Nuovo progetto': 'New project',
+  '＋ Nuovo': '＋ New',
+  '＋ Nuova': '＋ New',
+  '＋ Nuovo progetto': '＋ New project',
+  'Nome del nuovo progetto:': 'Name of the new project:',
+  'Nuovo nome del progetto:': 'New project name:',
+  'Nome del progetto (clic per modificare)': 'Project name (click to edit)',
+  'Elimina progetto': 'Delete project',
+  'Eliminare il progetto "{…}"?\nI brani restano nella libreria.': 'Delete the project "{…}"?\nThe songs stay in the library.',
+  "Nessun progetto: premi ＋ o trascina un brano nell'editor": 'No projects: press ＋ or drag a song into the editor',
+  'Apri un progetto': 'Open a project',
+  '◧ Apri un progetto': '◧ Open a project',
+  'dalla barra laterale oppure crea un nuovo progetto con': 'from the sidebar or create a new project with',
+  'Poi trascina i brani dalla': 'Then drag songs from the',
+  'nella timeline: puoi lasciarli interi o separarne le tracce.': 'into the timeline: you can keep them whole or split their tracks.',
+  'Trascinando un brano dalla libreria qui ne nasce subito un progetto.': 'Dragging a song from the library here creates a project right away.',
+  'Il progetto è vuoto: aggiungi un brano con il pulsante qui sotto o trascinalo dalla': 'The project is empty: add a song with the button below or drag it from the',
+  'Trascina un brano dalla libreria nella timeline': 'Drag a song from the library into the timeline',
+  'Alcune tracce puntano a brani eliminati dalla libreria e sono state tolte': 'Some tracks pointed to songs deleted from the library and were removed',
+  'Caricamento tracce…': 'Loading tracks…',
+  'Preparazione delle tracce…': 'Preparing tracks…',
+  'Errore nel caricamento delle tracce: {…}': 'Error loading tracks: {…}',
+  'Salvataggio del progetto non riuscito: {…}': 'Saving the project failed: {…}',
+  'Brano rimosso': 'Song removed',
+  'brano rimosso': 'song removed',
+
+  // ---------------------------------------------------------------- aggiungi traccia
+  'Aggiungi traccia': 'Add track',
+  '＋ Aggiungi traccia': '＋ Add track',
+  'Cerca nella libreria…': 'Search the library…',
+  'Dal computer': 'From computer',
+  '▶ YouTube': '▶ YouTube',
+  '⏺ Registra': '⏺ Record',
+  'scegli dal computer': 'choose from your computer',
+  'Il file viene salvato nella libreria e aggiunto al progetto dalla posizione della testina.': 'The file is saved to the library and added to the project at the playhead.',
+  'Il brano viene scaricato nella libreria e aggiunto al progetto appena pronto.': 'The song is downloaded to the library and added to the project as soon as it is ready.',
+  '▶ Importa e aggiungi': '▶ Import and add',
+  'Nessun brano: caricane uno dalla scheda "Dal computer" o da YouTube': 'No songs: upload one from the "From computer" tab or from YouTube',
+  'Aggiungi brano': 'Add song',
+  'Aggiunta di "{…}"…': 'Adding "{…}"…',
+  'preparazione del brano': 'preparing the song',
+  'Impossibile aggiungere "{…}": {…}': 'Could not add "{…}": {…}',
+  'Aggiunta al progetto…': 'Adding to the project…',
+  'Preparazione del download…': 'Preparing download…',
+  'Lettura del video…': 'Reading the video…',
+  'Import fallito: {…}': 'Import failed: {…}',
+  "Download non riuscito: {…}": 'Download failed: {…}',
+  'Rilascia per aggiungere il brano': 'Drop to add the song',
+  'Rilascia per aggiungere il brano al progetto': 'Drop to add the song to the project',
+  'Rilascia per creare un progetto con questo brano': 'Drop to create a project with this song',
+  'Rilascia: il file va nella libreria e nel progetto': 'Drop: the file goes to the library and to the project',
+  'Rilascia per aggiungere una traccia qui': 'Drop to add a track here',
+  '＋ Aggiungi traccia vuota': '＋ Add empty track',
+  'La traccia vuota viene preparata per la registrazione: premi ⏺ nel trasporto (o R) e suona sopra al progetto. La registrazione parte dalla testina e finisce con pausa o stop.':
+    'The empty track is armed for recording: press ⏺ in the transport (or R) and play over the project. Recording starts at the playhead and ends with pause or stop.',
+
+  // ---------------------------------------------------------------- trasporto e controlli
+  "Vai all'inizio (Home)": 'Go to start (Home)',
+  'Indietro 5 s (←)': 'Back 5 s (←)',
+  'Play/Pausa (spazio)': 'Play/Pause (space)',
+  'Stop': 'Stop',
+  'Avanti 5 s (→)': 'Forward 5 s (→)',
+  'Registra': 'Record',
+  'Registra una traccia dal microfono mentre il progetto suona (R)': 'Record a track from the microphone while the project plays (R)',
+  "Registra una traccia dall'ingresso audio mentre il progetto suona (R)": 'Record a track from the audio input while the project plays (R)',
+  'Ferma la registrazione (R)': 'Stop recording (R)',
+  'Tonalità': 'Key',
+  'Semitoni': 'Semitones',
+  'Tonalità del brano (stimata dagli accordi), già trasposta': "The song's key (estimated from the chords), already transposed",
+  'Velocità': 'Speed',
+  'Azzera: riporta tonalità e velocità ai valori originali': 'Reset key and speed to the original values',
+  'Ritmo': 'Beat',
+  'BPM': 'BPM',
+  'BPM rilevati nel brano': 'BPM detected in the song',
+  'BPM del metronomo: si cambia da ⚙': 'Metronome BPM: change it from ⚙',
+  'BPM del metronomo': 'Metronome BPM',
+  'BPM fisso alla velocità originale{…}. Rilevato: {…}': 'Fixed BPM at the original speed{…}. Detected: {…}',
+  ' (ora {…} BPM a {…}%)': ' (now {…} BPM at {…}%)',
+  'Torna al tempo rilevato': 'Back to the detected tempo',
+  'Metro, primo tempo della battuta e correzione del battito': 'Time signature, downbeat and beat correction',
+  'Rileva battiti e trascrive le note di tutte le tracce': 'Detects beats and transcribes the notes of all tracks',
+  'Analizza ritmo e note': 'Analyze rhythm and notes',
+  'Pre-click': 'Count-in',
+  "Pre-click: battute di conteggio prima dell'avvio della riproduzione": 'Count-in: bars counted before playback starts',
+  'Impostazioni del pre-click: battute e volume': 'Count-in settings: bars and volume',
+  'Opzioni del pre-click': 'Count-in options',
+  'Battute': 'Bars',
+  "Battute di pre-conteggio prima dell'avvio": 'Count-in bars before starting',
+  '1 battuta': '1 bar',
+  '2 battute': '2 bars',
+  'Volume del pre-click': 'Count-in volume',
+  'Click': 'Click',
+  'Click che segue i battiti rilevati nel brano (accento sul primo tempo)': 'Click that follows the beats detected in the song (accent on the downbeat)',
+  'Impostazioni del click: suono, volume, modalità': 'Click settings: sound, volume, mode',
+  'Opzioni del click': 'Click options',
+  'Suono': 'Sound',
+  'Suono del metronomo (anche per il pre-click)': 'Metronome sound (also used for the count-in)',
+  'Volume del click': 'Click volume',
+  'Modalità': 'Mode',
+  'Adattivo: ogni colpo segue il battito reale della registrazione. Tempo medio: segue il tempo della canzone livellando le irregolarità. Metronomo: BPM fisso, non segue i musicisti.':
+    "Adaptive: every hit follows the recording's real beat. Average tempo: follows the song's tempo, smoothing out irregularities. Metronome: fixed BPM, doesn't follow the musicians.",
+  'Adattivo': 'Adaptive',
+  'Tempo medio': 'Average tempo',
+  'Metronomo': 'Metronome',
+  'Se il click non coincide con la cassa: − lo anticipa, + lo ritarda. Vale per questo brano.': "If the click doesn't line up with the kick: − moves it earlier, + later. Applies to this song.",
+  'Sposta il click': 'Shift the click',
+  'Anticipa di 5 ms': '5 ms earlier',
+  'Ritarda di 5 ms': '5 ms later',
+  'Nessuno spostamento': 'No shift',
+  'Beep': 'Beep',
+  'Legnetto': 'Woodblock',
+  'Claves': 'Claves',
+  'Campanaccio': 'Cowbell',
+  'Charleston': 'Hi-hat',
+  'Bordo rullante': 'Rimshot',
+  'Volume generale (master)': 'Master volume',
+  'Ripristina tutte le impostazioni originali (le impostazioni si salvano automaticamente)': 'Restore all original settings (settings are saved automatically)',
+  '↺ Reimposta': '↺ Reset',
+  'Reimpostare il progetto ai valori originali?\n\nSi perdono tonalità, velocità, volumi, muto/solo, master, selezione e loop.\nTracce, clip e segnalibri restano come sono.':
+    'Reset the project to its original values?\n\nKey, speed, volumes, mute/solo, master, selection and loop will be lost.\nTracks, clips and bookmarks stay as they are.',
+  'Reset fallito: {…}': 'Reset failed: {…}',
+  'Impostazioni non salvate: {…}': 'Settings not saved: {…}',
+  'Esporta le tracce attive': 'Export the active tracks',
+  "L'audio non può funzionare in questa pagina.": "Audio can't work on this page.",
+  'Il browser attiva il motore audio solo in pagine sicure: apri Noises in': 'The browser only enables the audio engine on secure pages: open Noises over',
+  '(per esempio tramite Cloudflare Tunnel) oppure su': '(for example through Cloudflare Tunnel) or at',
+  'dal computer del server.': "from the server's own computer.",
+
+  // ---------------------------------------------------------------- metro
+  'Metro': 'Time signature',
+  'Primo tempo della battuta': 'Downbeat',
+  'Anticipa di un battito': 'One beat earlier',
+  'Posticipa di un battito': 'One beat later',
+  '◀ Anticipa': '◀ Earlier',
+  'Posticipa ▶': 'Later ▶',
+  'Torna al primo tempo rilevato': 'Back to the detected downbeat',
+  'Come rilevato': 'As detected',
+  'Anticipato di {…} battito': 'Moved 1 beat earlier',
+  'Posticipato di {…} battito': 'Moved 1 beat later',
+  'Anticipato di {…} battiti': 'Moved {…} beats earlier',
+  'Posticipato di {…} battiti': 'Moved {…} beats later',
+  'Battito rilevato': 'Detected beat',
+  'Battito originale': 'Original beat',
+  'Il click è troppo veloce: dimezza': 'The click is too fast: halve it',
+  'Il click è troppo lento: raddoppia': 'The click is too slow: double it',
+  '÷2 metà': '÷2 half',
+  '×2 doppio': '×2 double',
+  'Ascolta col': 'Listen with the',
+  "Click: l'accento deve cadere sul primo tempo di ogni battuta.": 'Click: the accent must fall on the first beat of every bar.',
+
+  // ---------------------------------------------------------------- selezione, loop, sezioni
+  'Riproduci la selezione (trascina sulla timeline per selezionare)': 'Play the selection (drag on the timeline to select)',
+  '▶ Selezione': '▶ Selection',
+  'Ripeti la selezione in loop (L)': 'Loop the selection (L)',
+  '⟳ Loop': '⟳ Loop',
+  'Annulla selezione (Esc)': 'Clear selection (Esc)',
+  'Regolazione fine del loop: ‹ › = 0,1 s (Shift: 0,01 s, tieni premuto per scorrere) · « » = click precedente/successivo':
+    'Fine loop adjustment: ‹ › = 0.1 s (Shift: 0.01 s, hold to keep moving) · « » = previous/next click',
+  'Inizio': 'Start',
+  'Fine': 'End',
+  'Inizio al click precedente': 'Start at the previous click',
+  'Inizio al click successivo': 'Start at the next click',
+  'Fine al click precedente': 'End at the previous click',
+  'Fine al click successivo': 'End at the next click',
+  "Anticipa l'inizio di 0,1 s (Shift: 0,01 s)": 'Move the start 0.1 s earlier (Shift: 0.01 s)',
+  "Ritarda l'inizio di 0,1 s (Shift: 0,01 s)": 'Move the start 0.1 s later (Shift: 0.01 s)',
+  'Anticipa la fine di 0,1 s (Shift: 0,01 s)': 'Move the end 0.1 s earlier (Shift: 0.01 s)',
+  'Ritarda la fine di 0,1 s (Shift: 0,01 s)': 'Move the end 0.1 s later (Shift: 0.01 s)',
+  "{…} (serve l'analisi del ritmo)": '{…} (needs the rhythm analysis)',
+  '＋ Salva sezione': '＋ Save section',
+  'Salva sezione': 'Save section',
+  'Salva la selezione come sezione con un nome, da richiamare in seguito': 'Save the selection as a named section to recall later',
+  '☰ Sezioni': '☰ Sections',
+  '☰ Sezioni ({…})': '☰ Sections ({…})',
+  'Sezioni salvate': 'Saved sections',
+  'Sezioni salvate: richiamale per ripeterle in loop': 'Saved sections: recall them to loop them',
+  'Elenco delle sezioni salvate': 'List of saved sections',
+  'Sezione "{…}": clic per ricominciare dall\'inizio': 'Section "{…}": click to start over from the beginning',
+  'Seleziona la sezione e ripetila in loop': 'Select the section and loop it',
+  'Nessuna sezione: trascina sulla timeline per selezionare una porzione, poi premi “Salva sezione”.': 'No sections: drag on the timeline to select a passage, then press “Save section”.',
+  'Nome della sezione:': 'Section name:',
+  'Sezione "{…}" salvata': 'Section "{…}" saved',
+  'Sezione "{…}" eliminata (Ctrl+Z per annullare)': 'Section "{…}" deleted (Ctrl+Z to undo)',
+  'Rinomina sezione': 'Rename section',
+  'Elimina sezione': 'Delete section',
+  'Regola sezione': 'Adjust section',
+  'Sezione': 'Section',
+
+  // ---------------------------------------------------------------- annulla, gruppi, selezione tracce
+  'Annulla (Ctrl+Z)': 'Undo (Ctrl+Z)',
+  'Ripeti (Ctrl+Y)': 'Redo (Ctrl+Y)',
+  'Annulla: {…} (Ctrl+Z)': 'Undo: {…} (Ctrl+Z)',
+  'Ripeti: {…} (Ctrl+Y)': 'Redo: {…} (Ctrl+Y)',
+  'Niente da annullare': 'Nothing to undo',
+  'Niente da ripetere': 'Nothing to redo',
+  'Annullato: {…}': 'Undone: {…}',
+  'Ripetuto: {…}': 'Redone: {…}',
+  'Ripristino delle tracce…': 'Restoring tracks…',
+  'Ripristino incompleto: {…}': 'Restore incomplete: {…}',
+  'Raggruppa': 'Group',
+  'Raggruppa le tracce selezionate (Ctrl+G): si spostano e si modificano insieme': 'Group the selected tracks (Ctrl+G): they move and are edited together',
+  'Sciogli gruppo': 'Ungroup',
+  'Sciogli il gruppo delle tracce selezionate (Ctrl+Shift+G)': 'Ungroup the selected tracks (Ctrl+Shift+G)',
+  '{…} traccia selezionata': '{…} track selected',
+  '{…} tracce selezionate': '{…} tracks selected',
+  'Gruppo': 'Group',
+  'Creato il {…}': 'Created {…}',
+  'Gruppo sciolto: le tracce ora sono indipendenti': 'Ungrouped: the tracks are now independent',
+  'Gruppo "{…}" eliminato — Ctrl+Z per annullare': 'Group "{…}" deleted — Ctrl+Z to undo',
+  'Gruppo: {…} tracce — clic per rinominare': 'Group: {…} tracks — click to rename',
+  '{…} · {…} tracce': '{…} · {…} tracks',
+  'Apri il gruppo': 'Open the group',
+  'Chiudi il gruppo': 'Close the group',
+  'Apri gruppo': 'Open group',
+  'Chiudi gruppo': 'Close group',
+  'Rinomina gruppo': 'Rename group',
+  'Separa gruppo': 'Ungroup',
+  'Elimina gruppo': 'Delete group',
+  'Muto (tutto il gruppo)': 'Mute (whole group)',
+  'Solo (tutto il gruppo)': 'Solo (whole group)',
+  'Volume del gruppo': 'Group volume',
+
+  // ---------------------------------------------------------------- tracce e clip
+  'Voce': 'Vocals',
+  'Batteria': 'Drums',
+  'Basso': 'Bass',
+  'Chitarra': 'Guitar',
+  'Piano': 'Piano',
+  'Altro': 'Other',
+  'Traccia': 'Track',
+  'Traccia vuota': 'Empty track',
+  "Trascina per cambiare l'ordine (Alt+↑/↓)": 'Drag to reorder (Alt+↑/↓)',
+  '{…} — clic per rinominare': '{…} — click to rename',
+  'Rinomina traccia': 'Rename track',
+  'Sposta traccia': 'Move track',
+  'Elimina traccia': 'Delete track',
+  'Traccia "{…}" eliminata — Ctrl+Z per annullare': 'Track "{…}" deleted — Ctrl+Z to undo',
+  'Duplica traccia': 'Duplicate track',
+  'Duplicazione di "{…}"…': 'Duplicating "{…}"…',
+  'Duplicazione non riuscita: {…}': 'Duplication failed: {…}',
+  '{…} (copia)': '{…} (copy)',
+  'Separa traccia': 'Split track',
+  'Separa tracce': 'Split tracks',
+  'Separazione in corso…': 'Splitting…',
+  'Separazione in corso': 'Splitting',
+  'Separazione già in corso: la traccia verrà sostituita al termine': 'Splitting already in progress: the track will be replaced when it finishes',
+  'Separazione di "{…}" avviata: la traccia verrà sostituita al termine': 'Splitting "{…}" started: the track will be replaced when it finishes',
+  'Separazione di "{…}" non riuscita': 'Splitting "{…}" failed',
+  'Separazione non riuscita: {…}': 'Splitting failed: {…}',
+  'Tracce separate di "{…}"…': 'Split tracks of "{…}"…',
+  '"{…}" separato in {…} tracce (raggruppate) — Ctrl+Z per annullare': '"{…}" split into {…} tracks (grouped) — Ctrl+Z to undo',
+  'Mostra note': 'Show notes',
+  'Nascondi note': 'Hide notes',
+  'Spartito e tablatura': 'Sheet music and tabs',
+  'Ricalcola accordi': 'Recalculate chords',
+  'Ricalcola accordi: {…}': 'Recalculate chords: {…}',
+  'Usa per registrare': 'Use for recording',
+  'Non usare per registrare': "Don't use for recording",
+  'Sposta clip': 'Move clip',
+  'Accorcia clip': 'Trim clip',
+  'Taglia': 'Cut',
+  'Taglio su {…} traccia': 'Cut on {…} track',
+  'Taglio su {…} tracce': 'Cut on {…} tracks',
+  'Seleziona le tracce da tagliare (clic sul nome della traccia)': 'Select the tracks to cut (click the track name)',
+  'Nessuna clip sotto la testina nelle tracce selezionate': 'No clip under the playhead in the selected tracks',
+  'Elimina parte': 'Delete part',
+
+  // ---------------------------------------------------------------- registrazione
+  'Aggiungi traccia vuota': 'Add empty track',
+  'Registrazione': 'Recording',
+  'Registra traccia': 'Record track',
+  'Registra su questa traccia: premi ⏺ nel trasporto (R)': 'Record on this track: press ⏺ in the transport (R)',
+  'Sorgente della registrazione': 'Recording source',
+  'Sorgente della registrazione: {…}': 'Recording source: {…}',
+  'Ingresso predefinito': 'Default input',
+  'Ingresso scelto': 'Selected input',
+  'Ingresso {…}': 'Input {…}',
+  'Ingressi da registrare: 1 o 2 (traccia mono) oppure 1+2 (stereo)': 'Inputs to record: 1 or 2 (mono track) or 1+2 (stereo)',
+  'Livello del segnale in ingresso (rosso: saturazione, abbassa il gain sulla scheda)': 'Input level (red: clipping, lower the gain on your interface)',
+  'Apri un progetto per registrare': 'Open a project to record',
+  'Per registrare riporta la velocità al 100%': 'Set the speed back to 100% to record',
+  'Disattiva il loop per registrare': 'Turn off the loop to record',
+  "La registrazione richiede una pagina sicura (HTTPS o localhost) e un browser con accesso all'audio in ingresso.": 'Recording needs a secure page (HTTPS or localhost) and a browser with access to audio input.',
+  "Accesso all'ingresso audio negato: consentilo dalle impostazioni del browser per registrare.": "Access to the audio input was denied: allow it in your browser's settings to record.",
+  'Nessun ingresso audio trovato.': 'No audio input found.',
+  "Impossibile aprire l'ingresso audio: {…}": 'Could not open the audio input: {…}',
+  'riproduzione non avviata': 'playback did not start',
+  'Registrazione troppo breve: scartata': 'Recording too short: discarded',
+  'Unione con la ripresa precedente…': 'Merging with the previous take…',
+  'Salvataggio della registrazione…': 'Saving the recording…',
+  'Salvataggio della registrazione fallito: {…}': 'Saving the recording failed: {…}',
+  'Traccia registrata: "{…}"': 'Track recorded: "{…}"',
+
+  // ---------------------------------------------------------------- timeline, zoom, segnalibri
+  'Panoramica': 'Overview',
+  'Panoramica: trascina il riquadro per scorrere, i bordi per lo zoom · Ctrl + rotella: zoom': 'Overview: drag the box to scroll, its edges to zoom · Ctrl + wheel: zoom',
+  'Zoom': 'Zoom',
+  'Unità della timeline (Ctrl + rotella sulla timeline)': 'Timeline scale (Ctrl + wheel on the timeline)',
+  'Riduci': 'Zoom out',
+  'Ingrandisci': 'Zoom in',
+  'Adatta il brano alla finestra': 'Fit the song to the window',
+  '⤢ Adatta': '⤢ Fit',
+  'Segui': 'Follow',
+  'Scorre automaticamente seguendo la riproduzione': 'Scrolls automatically to follow playback',
+  'Segnalibri': 'Bookmarks',
+  'Segnalibro': 'Bookmark',
+  'Segnalibro precedente ( , )': 'Previous bookmark ( , )',
+  'Segnalibro successivo ( . )': 'Next bookmark ( . )',
+  'Aggiungi un segnalibro nella posizione attuale (M)': 'Add a bookmark at the current position (M)',
+  'Aggiungi segnalibro': 'Add bookmark',
+  'Rinomina segnalibro': 'Rename bookmark',
+  'Sposta segnalibro': 'Move bookmark',
+  'Elimina segnalibro': 'Delete bookmark',
+  'Nome (es. Assolo)': 'Name (e.g. Solo)',
+  '{…} — {…} · clic: vai e modifica · trascina: sposta (Shift: senza griglia)': '{…} — {…} · click: go and edit · drag: move (Shift: no grid)',
+  '⟳ Loop sezione': '⟳ Loop section',
+  'Seleziona e ripete la sezione fino al segnalibro "{…}"': 'Selects and loops the section up to the bookmark "{…}"',
+  'Seleziona e ripete la sezione fino al fine del brano': 'Selects and loops the section up to the end of the song',
+
+  // ---------------------------------------------------------------- accordi
+  'Accordi': 'Chords',
+  'Accordi di "{…}"': 'Chords of "{…}"',
+  'Accordo corrente → successivo': 'Current chord → next',
+  'Notazione: clic per passare a Do Re Mi': 'Notation: click to switch to Do Re Mi',
+  'Notazione americana (C D E): clic per passare a Do Re Mi': 'Letter notation (C D E): click to switch to Do Re Mi',
+  'Notazione italiana (Do Re Mi): clic per passare a C D E': 'Solfège notation (Do Re Mi): click to switch to C D E',
+  'Annulla le correzioni e ripristina gli accordi rilevati': 'Discard corrections and restore the detected chords',
+  'Eliminare le correzioni e tornare agli accordi rilevati automaticamente?': 'Discard the corrections and go back to the automatically detected chords?',
+  'Le correzioni fatte a mano agli accordi andranno perse. Ricalcolare?': 'Manual chord corrections will be lost. Recalculate?',
+  'Accordi non ancora analizzati': 'Chords not analyzed yet',
+  'Riconosci accordi': 'Detect chords',
+  'Caricamento accordi…': 'Loading chords…',
+  'Analisi accordi…': 'Analyzing chords…',
+  'Analisi accordi in corso…': 'Chord analysis in progress…',
+  'Analisi accordi sul brano intero in corso…': 'Chord analysis on the whole song in progress…',
+  'Analisi accordi fallita: {…}': 'Chord analysis failed: {…}',
+  'Accordi non disponibili: {…}': 'Chords not available: {…}',
+  'Accordi di "{…}" ricalcolati': 'Chords of "{…}" recalculated',
+  'Separazione in corso: gli accordi arrivano al termine': 'Splitting in progress: chords will arrive when it finishes',
+  'Salvataggio accordi fallito: {…}': 'Saving chords failed: {…}',
+  'Nessun accordo': 'No chord',
+  "Divide l'accordo nel punto cliccato": 'Splits the chord at the clicked point',
+  'Unisce al precedente': 'Merges with the previous one',
+  '⇤ Unisci': '⇤ Merge',
+  'Trascina per spostare il cambio di accordo': 'Drag to move the chord change',
+  'maggiore': 'major',
+  'minore': 'minor',
+  'settima di dominante': 'dominant seventh',
+  'settima maggiore': 'major seventh',
+  'minore settima': 'minor seventh',
+  'sesta': 'sixth',
+  'minore sesta': 'minor sixth',
+  'sospeso 2': 'suspended 2',
+  'sospeso 4': 'suspended 4',
+  'diminuito': 'diminished',
+  'diminuito settima': 'diminished seventh',
+  'semidiminuito': 'half-diminished',
+  'aumentato': 'augmented',
+  'minore settima maggiore': 'minor major seventh',
+
+  // ---------------------------------------------------------------- note e synth
+  'Note · {…}': 'Notes · {…}',
+  'Non ancora trascritte': 'Not transcribed yet',
+  'Trascrizione in corso (~1 min)…': 'Transcribing (~1 min)…',
+  'Ascolta le note trascritte con un suono sintetico': 'Listen to the transcribed notes with a synth sound',
+  'Suono del synth': 'Synth sound',
+  'Ottava del synth (+1 rende più udibile il basso)': 'Synth octave (+1 makes the bass easier to hear)',
+  'Annulla le correzioni e ripristina la trascrizione automatica': 'Discard corrections and restore the automatic transcription',
+  'Annullare le correzioni e ripristinare la trascrizione automatica di "{…}"?': 'Discard the corrections and restore the automatic transcription of "{…}"?',
+  'Clic: seleziona · Trascina: sposta · Bordo destro: durata · Doppio clic: aggiungi · Canc: elimina · ↑↓: semitono · Shift: senza griglia':
+    'Click: select · Drag: move · Right edge: duration · Double-click: add · Del: delete · ↑↓: semitone · Shift: no grid',
+  'Synth': 'Synth',
+  'Automatico': 'Automatic',
+  'Piano elettrico': 'Electric piano',
+  'Organo': 'Organ',
+  'Marimba': 'Marimba',
+  'Synth lead': 'Synth lead',
+  'Chitarra pizzicata': 'Plucked guitar',
+  'Sinusoide pura': 'Pure sine',
+  'Ott. {…}': 'Oct. {…}',
+  'Cassa': 'Kick',
+  'Rullante': 'Snare',
+  'Hi-hat': 'Hi-hat',
+  'Salvataggio note fallito: {…}': 'Saving notes failed: {…}',
+  'Trascrizione fallita: {…}': 'Transcription failed: {…}',
+  'Trascrizione non disponibile: {…}': 'Transcription not available: {…}',
+  'La trascrizione non è ancora pronta.': 'The transcription is not ready yet.',
+  'Nessuna traccia attiva con note trascritte.': 'No active track with transcribed notes.',
+  'Quantizzazione ritmica': 'Rhythmic quantization',
+
+  // ---------------------------------------------------------------- spartito
+  'Spartito': 'Score',
+  '𝄞 Spartito': '𝄞 Score',
+  'Tablatura': 'Tab',
+  'Entrambi': 'Both',
+  'Accordatura': 'Tuning',
+  'Chitarra (E A D G B E)': 'Guitar (E A D G B E)',
+  'Basso 4 corde (E A D G)': '4-string bass (E A D G)',
+  'Basso 5 corde (B E A D G)': '5-string bass (B E A D G)',
+  'Chitarra Drop D (D A D G B E)': 'Drop D guitar (D A D G B E)',
+  'Griglia 1/4': 'Grid 1/4',
+  'Griglia 1/8': 'Grid 1/8',
+  'Griglia 1/16': 'Grid 1/16',
+  '{…} battute · {…}': '{…} bars · {…}',
+  '{…} · battuta {…}': '{…} · bar {…}',
+  'Generazione dello spartito…': 'Generating the sheet music…',
+  'Impaginazione…': 'Laying out…',
+  'Scarica il file MusicXML (MuseScore, Sibelius, Finale…)': 'Download the MusicXML file (MuseScore, Sibelius, Finale…)',
+  '⤓ MusicXML': '⤓ MusicXML',
+  'Stampa': 'Print',
+  'Stampa o salva in PDF': 'Print or save as PDF',
+
+  // ---------------------------------------------------------------- esportazione
+  'Esporta brano': 'Export',
+  'Formato': 'Format',
+  'MP3 320 kbps': 'MP3 320 kbps',
+  'WAV 16 bit': 'WAV 16-bit',
+  'FLAC (lossless)': 'FLAC (lossless)',
+  'MIDI (note trascritte)': 'MIDI (transcribed notes)',
+  'Porzione': 'Range',
+  'Brano intero': 'Whole song',
+  'Selezione ({…} – {…})': 'Selection ({…} – {…})',
+  'Selezione (nessuna)': 'Selection (none)',
+  'Selezione': 'Selection',
+  'Tracce incluse': 'Included tracks',
+  'Nessuna traccia attiva.': 'No active tracks.',
+  '(usa M / S nel mixer per escluderle)': '(use M / S in the mixer to exclude them)',
+  'Per le basi': 'For backing tracks',
+  'Click per tutto il brano': 'Click for the whole song',
+  'Nessun pre-conteggio': 'No count-in',
+  'Pre-conteggio 1 battuta': 'Count-in 1 bar',
+  'Pre-conteggio 2 battute': 'Count-in 2 bars',
+  'Tonalità, velocità e volumi correnti vengono applicati al file.': 'The current key, speed and volumes are applied to the file.',
+  'Nome file': 'File name',
+  'Esportazione fallita: {…}': 'Export failed: {…}',
+  ' - senza {…}': ' - without {…}',
+  ' - solo {…}': ' - only {…}',
+
+  // ---------------------------------------------------------------- scalette
+  'Nuova scaletta': 'New setlist',
+  'Nome della scaletta:': 'Setlist name:',
+  'Nome della scaletta (clic per modificare)': 'Setlist name (click to edit)',
+  'Tutte le scalette': 'All setlists',
+  'Elimina scaletta': 'Delete setlist',
+  'Eliminare la scaletta "{…}"?\nI progetti non vengono eliminati.': 'Delete the setlist "{…}"?\nThe projects are not deleted.',
+  'Nessuna scaletta: premi ＋ per crearne una e mettere in fila i progetti da suonare': 'No setlists: press ＋ to create one and line up the projects to play',
+  'Una scaletta mette in fila i progetti da suonare: alla fine di uno parte il successivo.': 'A setlist lines up the projects to play: when one ends, the next one starts.',
+  "Scaletta vuota: aggiungi i progetti qui sotto, nell'ordine in cui li suonerai": "Empty setlist: add the projects below, in the order you'll play them",
+  '＋ Aggiungi progetto…': '＋ Add project…',
+  '＋ Progetto aperto': '＋ Open project',
+  'Aggiungi il progetto aperto': 'Add the open project',
+  'Aggiungi un progetto in fondo alla scaletta': 'Add a project at the end of the setlist',
+  "Tra un brano e l'altro": 'Between songs',
+  'Nessuna pausa': 'No pause',
+  '3 secondi': '3 seconds',
+  '5 secondi': '5 seconds',
+  '10 secondi': '10 seconds',
+  '15 secondi': '15 seconds',
+  '30 secondi': '30 seconds',
+  'Attendi il Play': 'Wait for Play',
+  '▶ Suona': '▶ Play',
+  "Suona la scaletta dall'inizio": 'Play the setlist from the start',
+  'Apri la scaletta': 'Open the setlist',
+  'Suona da qui': 'Play from here',
+  'Togli dalla scaletta': 'Remove from the setlist',
+  "Trascina per cambiare l'ordine": 'Drag to reorder',
+  'Progetto precedente': 'Previous project',
+  'Progetto successivo': 'Next project',
+  'Avvia subito': 'Start now',
+  '▶ Ora': '▶ Now',
+  'Esci dalla scaletta': 'Leave the setlist',
+  '"{…}" parte tra {…} s': '"{…}" starts in {…} s',
+  'Prossimo: {…}': 'Next: {…}',
+  'Ultimo brano della scaletta': 'Last song in the setlist',
+  'Scaletta "{…}" finita': 'Setlist "{…}" finished',
+  'Scaletta non salvata: {…}': 'Setlist not saved: {…}',
+  'Creazione non riuscita: {…}': 'Creation failed: {…}',
+
+  // ---------------------------------------------------------------- lingua
+  '🌐 English': '🌐 Italiano',
+
+  // ---------------------------------------------------------------- messaggi del server
+  'Password aggiornata.': 'Password updated.',
+  "Se l'account esiste e non è ancora confermato, ti abbiamo inviato un nuovo link.": "If the account exists and isn't confirmed yet, we sent you a new link.",
+  "Se l'indirizzo è registrato riceverai un'email con il link per reimpostare la password.": "If the address is registered you'll get an email with a link to reset your password.",
+  "Se l'indirizzo è valido riceverai un'email per confermare l'account.": "If the address is valid you'll get an email to confirm the account.",
+  'URL non valido': 'Invalid URL',
+  'accordo non valido': 'invalid chord',
+  'brano sconosciuto: {…}': 'unknown song: {…}',
+  'click non valido': 'invalid click',
+  'ffmpeg fallito: {…}': 'ffmpeg failed: {…}',
+  'formato non valido: {…}': 'invalid format: {…}',
+  'gruppi non validi': 'invalid groups',
+  'il progetto deve avere un nome': 'the project needs a name',
+  'impostazioni non valide': 'invalid settings',
+  'impostazioni ritmiche non valide': 'invalid rhythm settings',
+  'indirizzo email non valido': 'invalid email address',
+  'la password deve avere tra 8 e 128 caratteri': 'the password must be between 8 and 128 characters',
+  'la password deve contenere lettere e almeno un numero o simbolo': 'the password must contain letters and at least one number or symbol',
+  'la registrazione è disabilitata': 'sign-up is disabled',
+  'la scaletta deve avere un nome': 'the setlist needs a name',
+  'link scaduto o già usato: richiedine uno nuovo': 'link expired or already used: request a new one',
+  'modello non valido: {…}': 'invalid model: {…}',
+  'nessun file inviato': 'no file sent',
+  'nessuna traccia attiva da esportare': 'no active tracks to export',
+  'nome playlist non valido (1-100 caratteri)': 'invalid playlist name (1-100 characters)',
+  'nota non valida': 'invalid note',
+  'pausa non valida': 'invalid pause',
+  'pre-conteggio non valido': 'invalid count-in',
+  'progetto sconosciuto': 'unknown project',
+  'progetto troppo grande': 'project too large',
+  'segnalibri non validi': 'invalid bookmarks',
+  'selezione non valida': 'invalid selection',
+  'sezioni non valide': 'invalid sections',
+  'traccia non valida: {…}': 'invalid track: {…}',
+  'traccia sconosciuta: {…}': 'unknown track: {…}',
+  'traccia separata non disponibile: {…}': 'split track not available: {…}',
+  'troppe note': 'too many notes',
+  'troppi accordi': 'too many chords',
+  'troppi progetti': 'too many projects',
+  '{…} non ancora eseguita': '{…} not run yet',
+  'accesso richiesto': 'sign-in required',
+  'non trovato': 'not found',
+  'elaborazione già avviata o completata': 'processing already started or completed',
+  'separazione in corso: accordi non ancora disponibili': 'splitting in progress: chords not available yet',
+  'email non ancora confermata: controlla la posta': 'email not confirmed yet: check your inbox',
+  'accesso con Google non configurato': 'Google sign-in is not configured',
+  'troppi tentativi: riprova tra qualche minuto': 'too many attempts: try again in a few minutes',
+  'email o password non corretti': 'wrong email or password',
+  'password attuale non corretta': 'current password is wrong',
+};
+
+// frasi con parti variabili: {…} (o {1}, {2}… per cambiare l'ordine) diventa un gruppo
+const PATTERNS = [];
+const EXACT = new Map();
+if (LANG === 'en') {
+  const norm = (s) => s.replace(/\s+/g, ' ').trim();
+  for (const [it, en] of Object.entries(EN)) {
+    if (it.includes('{…}')) {
+      const parts = it.split('{…}').map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'));
+      PATTERNS.push([new RegExp(`^\\s*${parts.join('([\\s\\S]+?)')}\\s*$`), en]);
+    } else {
+      EXACT.set(norm(it), en);
+      if (it !== norm(it)) EXACT.set(it, en);
+    }
+  }
+  // prima le frasi con più testo fisso: "Gruppo: {…} tracce — clic…" prima di "{…} — clic…"
+  PATTERNS.sort((a, b) => b[0].source.replace(/\(\[\\s\\S\]\+\?\)/g, '').length - a[0].source.replace(/\(\[\\s\\S\]\+\?\)/g, '').length);
+}
+
+/** Traduce una frase completa (o la lascia com'è). Le parti variabili vengono tradotte a loro volta. */
+function tr(s, depth = 0) {
+  if (LANG !== 'en' || typeof s !== 'string' || !/[A-Za-zÀ-ÿ]/.test(s) || depth > 3) return s;
+  const hit = EXACT.get(s) ?? EXACT.get(s.replace(/\s+/g, ' ').trim());
+  if (hit != null) {
+    // conserva gli spazi attorno al testo (nodi di testo dell'HTML)
+    const lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0];
+    return lead + hit + trail;
+  }
+  for (const [re, en] of PATTERNS) {
+    const m = s.match(re);
+    if (!m) continue;
+    const args = m.slice(1).map((a) => tr(a, depth + 1));
+    let i = 0;
+    return en.replace(/\{(…|\d)\}/g, (_, k) => (k === '…' ? args[i++] : args[Number(k) - 1]) ?? '');
+  }
+  return s;
+}
+
+/** Testo da usare come dato (nomi predefiniti, etichette disegnate): T('Sezione') → "Section". */
+function T(s) { return tr(s); }
+
+// ---------------------------------------------------------------- DOM, dialoghi, titolo
+
+const I18N_ATTRS = ['title', 'placeholder', 'aria-label', 'alt'];
+const I18N_SKIP = 'script, style, textarea, [contenteditable], [data-noi18n]';
+
+function translateNode(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const p = node.parentElement;
+    if (!p || p.closest(I18N_SKIP)) return;
+    const v = node.nodeValue, out = tr(v);
+    if (out !== v) node.nodeValue = out;
+    return;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE || node.closest(I18N_SKIP)) return;
+  for (const a of I18N_ATTRS) {
+    const v = node.getAttribute(a);
+    if (v) { const out = tr(v); if (out !== v) node.setAttribute(a, out); }
+  }
+  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeType === Node.TEXT_NODE) {
+      const v = n.nodeValue;
+      if (!/[A-Za-zÀ-ÿ]/.test(v) || (n.parentElement && n.parentElement.closest(I18N_SKIP))) continue;
+      const out = tr(v);
+      if (out !== v) n.nodeValue = out;
+    } else if (!n.closest(I18N_SKIP)) {
+      for (const a of I18N_ATTRS) {
+        const v = n.getAttribute(a);
+        if (v) { const out = tr(v); if (out !== v) n.setAttribute(a, out); }
+      }
+    }
+  }
+}
+
+// il server sceglie la lingua delle email (conferma account, reset password)
+{
+  const origFetch = window.fetch.bind(window);
+  window.fetch = (input, init = {}) => {
+    const url = typeof input === 'string' ? input : input.url;
+    if (url.startsWith('/api/')) {
+      const headers = new Headers(init.headers || (typeof input === 'string' ? undefined : input.headers));
+      headers.set('X-Noises-Lang', LANG);
+      init = { ...init, headers };
+    }
+    return origFetch(input, init);
+  };
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.lang-btn')) setLang(LANG === 'it' ? 'en' : 'it');
+});
+
+if (LANG === 'en') {
+  for (const name of ['alert', 'confirm']) {
+    const orig = window[name].bind(window);
+    window[name] = (msg) => orig(tr(String(msg ?? '')));
+  }
+  const origPrompt = window.prompt.bind(window);
+  window.prompt = (msg, def) => origPrompt(tr(String(msg ?? '')), def == null ? def : tr(String(def)));
+  const start = () => {
+    document.title = tr(document.title);
+    translateNode(document.body);
+    new MutationObserver((list) => {
+      for (const m of list) {
+        if (m.type === 'childList') m.addedNodes.forEach(translateNode);
+        else if (m.type === 'characterData') translateNode(m.target);
+        else if (m.type === 'attributes') {
+          const v = m.target.getAttribute(m.attributeName);
+          if (v && !m.target.closest(I18N_SKIP)) { const out = tr(v); if (out !== v) m.target.setAttribute(m.attributeName, out); }
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: I18N_ATTRS });
+  };
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+}

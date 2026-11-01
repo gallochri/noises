@@ -28,7 +28,7 @@ function addMarker(atDisplay) {
   const t = +((atDisplay ?? engine.position()) / mk()).toFixed(3);
   const near = state.markers.find((m) => Math.abs(m.t - t) < 0.05);
   if (near) { openMarkerMenu(near.id, true); return; }
-  const m = { id: Math.random().toString(36).slice(2, 10), t, name: `Segnalibro ${state.markers.length + 1}` };
+  const m = { id: Math.random().toString(36).slice(2, 10), t, name: `${T('Segnalibro')} ${state.markers.length + 1}` };
   pushUndo('Aggiungi segnalibro');
   state.markers.push(m);
   saveMarkers();

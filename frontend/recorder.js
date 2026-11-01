@@ -27,7 +27,7 @@ async function addEmptyTrack() {
   if (state.pending) await new Promise((r) => { const w = setInterval(() => { if (!state.pending) { clearInterval(w); r(); } }, 100); });
   pushUndo('Aggiungi traccia vuota');
   const n = engine.tracks.filter(isEmptyTrack).length + 1;
-  const t = engine.addTrack({ name: newTrackName(), song: '', part: 'original', label: `Registrazione ${n}`, clips: [], rec: true, ...emptyAudio() });
+  const t = engine.addTrack({ name: newTrackName(), song: '', part: 'original', label: `${T('Registrazione')} ${n}`, clips: [], rec: true, ...emptyAudio() });
   selectTracks([t.name]);
   saveProject();
   buildTracks();
@@ -390,7 +390,7 @@ async function saveRecording(l, r, stereo, startPos, targetName) {
   const project = state.current;
   const prev = engine.tracks.find((x) => x.name === targetName && isRecTrack(x));
   const d = new Date(), p2 = (n) => String(n).padStart(2, '0');
-  const name = `Registrazione ${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}.${p2(d.getMinutes())}`;
+  const name = `${T('Registrazione')} ${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}.${p2(d.getMinutes())}`;
   try {
     if (prev && !isEmptyTrack(prev) && prev.clips.length) ({ l, r, stereo, start: startPos } = await mergeWithTake(prev, l, r, stereo, startPos));
     const file = new File([encodeWav(stereo ? [l, r] : [l], engine.sr)], `${name}.wav`, { type: 'audio/wav' });

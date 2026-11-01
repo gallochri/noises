@@ -3,7 +3,7 @@
 // Le note sono salvate in secondi e altezze ORIGINALI; la visualizzazione applica
 // la velocità (engine.tempo) e la trasposizione (engine.pitch) correnti.
 
-const DRUM_ROWS = [{ p: 42, label: 'Hi-hat' }, { p: 38, label: 'Rullante' }, { p: 36, label: 'Cassa' }];
+const DRUM_ROWS = [{ p: 42, label: T('Hi-hat') }, { p: 38, label: T('Rullante') }, { p: 36, label: T('Cassa') }];
 const NOTE_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
 const BLACK = new Set([1, 3, 6, 8, 10]);
 const rolls = {};          // stem → { canvas, row, rows: [pitch...], rowH }

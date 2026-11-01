@@ -23,7 +23,7 @@ function saveSelectionAsRegion() {
   if (!s || !state.current) return;
   const cur = regionOfSelection();
   if (cur) { renameRegion(cur); return; }
-  const name = askRegionName(`Sezione ${state.regions.length + 1}`);
+  const name = askRegionName(`${T('Sezione')} ${state.regions.length + 1}`);
   if (!name) return;
   pushUndo('Salva sezione');
   const k = rk();

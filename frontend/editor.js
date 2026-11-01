@@ -215,9 +215,9 @@ function groupSelected() {
   pushUndo('Raggruppa');
   state.groups.forEach((g) => { g.tracks = g.tracks.filter((n) => !names.includes(n)); });
   let n = 1;
-  while (state.groups.some((g) => g.name === `Gruppo ${n}`)) n++;
+  while (state.groups.some((g) => g.name === `${T('Gruppo')} ${n}`)) n++;
   // come per le tracce separate: una traccia di gruppo che si apre e si chiude
-  state.groups.push({ id: `g${newClipId()}`, name: `Gruppo ${n}`, tracks: names, anchored: false,
+  state.groups.push({ id: `g${newClipId()}`, name: `${T('Gruppo')} ${n}`, tracks: names, anchored: false,
     folder: true, collapsed: false, muted: false, solo: false, volume: 1 });
   // le tracce del gruppo diventano contigue, dove si trovava la prima
   const members = engine.tracks.filter((t) => names.includes(t.name));

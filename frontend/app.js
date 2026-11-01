@@ -2,8 +2,8 @@
 
 const $ = (s) => document.querySelector(s);
 const COLORS = { vocals: '#ff6b9a', drums: '#ffb547', bass: '#4fd1c5', guitar: '#7cc4ff', piano: '#c49bff', other: '#9be36b' };
-const LABELS = { vocals: 'Voce', drums: 'Batteria', bass: 'Basso', guitar: 'Chitarra', piano: 'Piano', other: 'Altro' };
-const MODEL_LABELS = { htdemucs: '4 tracce', htdemucs_ft: '4 tracce HQ', htdemucs_6s: '6 tracce' };
+const LABELS = { vocals: T('Voce'), drums: T('Batteria'), bass: T('Basso'), guitar: T('Chitarra'), piano: T('Piano'), other: T('Altro') };
+const MODEL_LABELS = { htdemucs: T('4 tracce'), htdemucs_ft: T('4 tracce HQ'), htdemucs_6s: T('6 tracce') };
 
 const state = { zoom: 40, follow: true, notes: null, showNotes: new Set(), synth: new Set(), selNote: null,
   songs: [], playlists: [], view: 'all', query: '', current: null, pitch: 0, tempo: 100, loadSeq: 0, debounce: null, sel: null, loopOn: false };
@@ -20,7 +20,7 @@ async function api(path, opts) {
   if (!r.ok) {
     let msg = r.statusText;
     try { msg = (await r.json()).error || msg; } catch {}
-    const err = new Error(msg);
+    const err = new Error(tr(msg));
     err.status = r.status;
     if (r.status === 401 && !path.startsWith('/api/auth/') && typeof showAuth === 'function') showAuth('login');
     throw err;
@@ -589,7 +589,7 @@ function uploadFile(file) {
       else {
         let msg = xhr.statusText;
         try { msg = JSON.parse(xhr.responseText).error; } catch {}
-        reject(new Error(msg || `HTTP ${xhr.status}`));
+        reject(new Error(tr(msg) || `HTTP ${xhr.status}`));
       }
     };
     xhr.onerror = () => { bar.classList.add('hidden'); reject(new Error('errore di rete')); };
@@ -1388,8 +1388,8 @@ function defaultExportName() {
   let name = song.name;
   if (off.length) {
     name += off.length <= active.length
-      ? ` - senza ${off.map(lbl).join(', ')}`
-      : ` - solo ${active.map(lbl).join(', ')}`;
+      ? tr(` - senza ${off.map(lbl).join(', ')}`)
+      : tr(` - solo ${active.map(lbl).join(', ')}`);
   }
   if (state.pitch) name += ` (${state.pitch > 0 ? '+' : ''}${state.pitch} st)`;
   if (state.tempo !== 100) name += ` (${state.tempo}%)`;
@@ -1608,11 +1608,11 @@ const SHARP = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A�
 const FLAT = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
 const SOLFEGE = { C: 'Do', D: 'Re', E: 'Mi', F: 'Fa', G: 'Sol', A: 'La', B: 'Si' };
 const QUALITY = {
-  maj: ['', 'maggiore'], min: ['m', 'minore'], 7: ['7', 'settima di dominante'],
-  maj7: ['maj7', 'settima maggiore'], min7: ['m7', 'minore settima'], maj6: ['6', 'sesta'],
-  min6: ['m6', 'minore sesta'], sus2: ['sus2', 'sospeso 2'], sus4: ['sus4', 'sospeso 4'],
-  dim: ['dim', 'diminuito'], dim7: ['dim7', 'diminuito settima'], hdim7: ['m7♭5', 'semidiminuito'],
-  aug: ['aug', 'aumentato'], minmaj7: ['m(maj7)', 'minore settima maggiore'],
+  maj: ['', T('maggiore')], min: ['m', T('minore')], 7: ['7', T('settima di dominante')],
+  maj7: ['maj7', T('settima maggiore')], min7: ['m7', T('minore settima')], maj6: ['6', T('sesta')],
+  min6: ['m6', T('minore sesta')], sus2: ['sus2', T('sospeso 2')], sus4: ['sus4', T('sospeso 4')],
+  dim: ['dim', T('diminuito')], dim7: ['dim7', T('diminuito settima')], hdim7: ['m7♭5', T('semidiminuito')],
+  aug: ['aug', T('aumentato')], minmaj7: ['m(maj7)', T('minore settima maggiore')],
 };
 const MINOR_FAMILY = new Set(['min', 'min7', 'min6', 'minmaj7', 'hdim7', 'dim', 'dim7']);
 const FLAT_MAJOR_KEYS = new Set([5, 10, 3, 8, 1, 6]); // Fa, Si♭, Mi♭, La♭, Re♭, Sol♭
