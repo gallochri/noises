@@ -4,8 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Noises — separa le tracce, studia e suona</title>
-<meta name="description" content="Noises è una web app open source e self-hosted per musicisti: separazione delle tracce con l'AI, tonalità e velocità in tempo reale, accordi, spartito, tablatura, click adattivo e basi. Licenza MIT.">
+<meta name="description" content="Noises è una web app open source e self-hosted per musicisti: separazione delle tracce con l'AI, tonalità e velocità in tempo reale, accordi, spartito, tablatura, click adattivo, loop per esercitarsi, registrazione e basi. Licenza MIT.">
+<link rel="alternate" hreflang="it" href="https://teopost.github.io/noises/">
+<link rel="alternate" hreflang="en" href="https://teopost.github.io/noises/en/">
+<link rel="alternate" hreflang="x-default" href="https://teopost.github.io/noises/en/">
 <meta property="og:type" content="website">
+<meta property="og:locale" content="it_IT">
+<meta property="og:locale:alternate" content="en_US">
 <meta property="og:title" content="Noises — separa le tracce, studia e suona">
 <meta property="og:description" content="Separazione AI, accordi, spartito, click adattivo e basi. Self-hosted, open source (MIT), gira anche su Raspberry Pi.">
 <meta property="og:image" content="https://teopost.github.io/noises/assets/og.jpg">
@@ -16,188 +21,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0d0f14;
-    --bg-2: #12151c;
-    --panel: #171a22;
-    --panel-2: #1e222c;
-    --border: #2a2f3b;
-    --text: #e9ebf1;
-    --muted: #9aa1b2;
-    --accent: #7c5cff;
-    --accent-2: #a48bff;
-    --pink: #ff6b9a;
-    --amber: #f5b942;
-    --teal: #3dd6c4;
-    --green: #2bd47d;
-    --radius: 16px;
-    --max: 1180px;
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 16px/1.6 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    -webkit-font-smoothing: antialiased; overflow-x: hidden;
-  }
-  a { color: inherit; }
-  img { max-width: 100%; height: auto; display: block; }
-  .wrap { width: min(var(--max), 100% - 32px); margin: 0 auto; }
-  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
-
-  /* ---------- barra superiore ---------- */
-  .nav {
-    position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    background: color-mix(in srgb, var(--bg) 78%, transparent); border-bottom: 1px solid #ffffff0d;
-  }
-  .nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; text-decoration: none; letter-spacing: -.2px; }
-  .logo { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--accent); display: grid; place-items: center; }
-  .logo::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
-  .nav-links { display: flex; gap: 24px; margin-left: auto; }
-  .nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; }
-  .nav-links a:hover { color: var(--text); }
-  .btn {
-    display: inline-flex; align-items: center; gap: 9px; padding: 12px 20px; border-radius: 12px; font-weight: 600; font-size: 15px;
-    text-decoration: none; border: 1px solid var(--border); background: var(--panel); color: var(--text); transition: transform .15s, border-color .15s, background .15s;
-  }
-  .btn:hover { transform: translateY(-1px); border-color: #3b4252; }
-  .btn.primary { background: linear-gradient(135deg, var(--accent), #9b6bff); border-color: transparent; box-shadow: 0 8px 30px #7c5cff55; }
-  .btn.primary:hover { box-shadow: 0 10px 36px #7c5cff77; }
-  .btn.small { padding: 8px 14px; font-size: 14px; border-radius: 10px; }
-  .btn svg { width: 18px; height: 18px; fill: currentColor; }
-  @media (max-width: 760px) { .nav-links { display: none; } .nav .btn.small { margin-left: auto; } }
-
-  /* ---------- hero ---------- */
-  .hero { position: relative; padding: 84px 0 40px; text-align: center; isolation: isolate; }
-  .hero::before {
-    content: ''; position: absolute; inset: -120px 0 auto; height: 720px; z-index: -1;
-    background:
-      radial-gradient(600px 320px at 50% 18%, #7c5cff40, transparent 70%),
-      radial-gradient(380px 260px at 20% 40%, #ff6b9a1f, transparent 70%),
-      radial-gradient(420px 260px at 82% 38%, #3dd6c41c, transparent 70%);
-  }
-  .pill {
-    display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500;
-    color: var(--accent-2); background: #7c5cff17; border: 1px solid #7c5cff40;
-  }
-  .pill b { color: var(--text); font-weight: 600; }
-  h1 {
-    font-size: clamp(40px, 7vw, 78px); line-height: 1.02; letter-spacing: -2.4px; font-weight: 800; margin: 22px auto 18px; max-width: 900px;
-  }
-  .grad { background: linear-gradient(100deg, #fff 10%, var(--accent-2) 45%, var(--pink) 75%, var(--amber)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .lead { color: var(--muted); font-size: clamp(17px, 2.2vw, 20px); max-width: 720px; margin: 0 auto 32px; }
-  .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-  .meta { margin-top: 22px; display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
-  .meta span { display: inline-flex; align-items: center; gap: 6px; }
-  .meta span::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
-
-  /* onde animate decorative */
-  .bars { display: flex; justify-content: center; align-items: center; gap: 4px; height: 34px; margin: 0 auto 6px; }
-  .bars i { width: 4px; border-radius: 3px; background: linear-gradient(var(--accent-2), var(--pink)); animation: eq 1.2s ease-in-out infinite; opacity: .85; }
-  @keyframes eq { 0%, 100% { height: 6px; } 50% { height: 30px; } }
-
-  /* ---------- screenshot ---------- */
-  .shot { margin: 56px auto 0; width: min(1240px, 100% - 32px); perspective: 1800px; }
-  .frame {
-    border-radius: 18px; overflow: hidden; border: 1px solid #ffffff1a; background: var(--panel);
-    box-shadow: 0 40px 120px -20px #000c, 0 0 0 1px #00000080, 0 0 90px -10px #7c5cff55;
-    transform: rotateX(8deg) scale(.98); transform-origin: 50% 0; transition: transform .8s cubic-bezier(.2,.7,.2,1);
-  }
-  .frame.flat { transform: none; }
-  @media (max-width: 760px) { .frame { transform: none; } .shot { margin-top: 40px; } }
-  .frame-bar { display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; background: #12141b; border-bottom: 1px solid #ffffff10; }
-  .frame-bar i { width: 11px; height: 11px; border-radius: 50%; background: #3a3f4c; }
-  .frame-bar i:nth-child(1) { background: #ff5f57; } .frame-bar i:nth-child(2) { background: #febc2e; } .frame-bar i:nth-child(3) { background: #28c840; }
-  .frame-bar span { margin: 0 auto; font-size: 12px; color: var(--muted); background: #0d0f14; padding: 3px 14px; border-radius: 7px; transform: translateX(-26px); }
-  .caption { text-align: center; color: var(--muted); font-size: 13px; margin-top: 16px; }
-
-  /* ---------- sezioni ---------- */
-  section { padding: 96px 0; }
-  .kicker { color: var(--accent-2); font-weight: 600; font-size: 13px; letter-spacing: 1.6px; text-transform: uppercase; }
-  h2 { font-size: clamp(30px, 4.4vw, 46px); line-height: 1.1; letter-spacing: -1.2px; margin: 10px 0 14px; font-weight: 800; }
-  .sub { color: var(--muted); font-size: 18px; max-width: 680px; margin: 0; }
-  .center { text-align: center; } .center .sub { margin: 0 auto; }
-
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 48px; }
-  @media (max-width: 980px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
-  .card {
-    position: relative; padding: 26px; border-radius: var(--radius); background: linear-gradient(180deg, var(--panel), var(--bg-2));
-    border: 1px solid var(--border); overflow: hidden; transition: border-color .2s, transform .2s;
-  }
-  .card:hover { border-color: #7c5cff66; transform: translateY(-2px); }
-  .card::after { content: ''; position: absolute; inset: auto -40% -60% auto; width: 220px; height: 220px; border-radius: 50%; background: var(--glow, #7c5cff); opacity: .07; filter: blur(30px); }
-  .ico { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 18px; background: color-mix(in srgb, var(--glow, #7c5cff) 16%, transparent); color: var(--glow, var(--accent-2)); }
-  .ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .card h3 { margin: 0 0 8px; font-size: 18px; letter-spacing: -.2px; }
-  .card p { margin: 0; color: var(--muted); font-size: 15px; }
-
-  /* blocchi affiancati */
-  .split { display: grid; grid-template-columns: 1fr 1.15fr; gap: 56px; align-items: center; }
-  .split.rev { grid-template-columns: 1.15fr 1fr; }
-  .split.rev .media { order: -1; }
-  @media (max-width: 900px) { .split, .split.rev { grid-template-columns: 1fr; gap: 32px; } .split.rev .media { order: 0; } }
-  .split > *, .grid > *, .steps > * { min-width: 0; } /* il terminale scorre al suo interno, non allarga la pagina */
-  @media (max-width: 520px) { .frame-bar span { display: none; } }
-  .ticks { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; }
-  .ticks li { display: flex; gap: 12px; color: var(--muted); }
-  .ticks li::before { content: ''; flex: none; width: 20px; height: 20px; margin-top: 2px; border-radius: 6px; background: #7c5cff26 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a48bff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center/13px no-repeat; }
-  .ticks b { color: var(--text); font-weight: 600; }
-  .media .frame { transform: none; }
-
-  /* demo del click */
-  .click-modes { display: grid; gap: 12px; margin-top: 28px; }
-  .mode { display: grid; grid-template-columns: 130px 1fr; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 12px; background: var(--panel); border: 1px solid var(--border); }
-  .mode strong { font-size: 15px; }
-  .mode small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; }
-  .ticks-row { position: relative; height: 26px; }
-  .ticks-row i { position: absolute; top: 3px; width: 3px; height: 20px; border-radius: 2px; background: var(--accent-2); }
-  .ticks-row i.acc { background: var(--amber); height: 24px; top: 1px; }
-  .ticks-row .kick { position: absolute; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--teal); opacity: .5; transform: translateX(-3px); }
-  @media (max-width: 520px) { .mode { grid-template-columns: 1fr; } }
-
-  /* passi */
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; counter-reset: s; }
-  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
-  .step { padding: 28px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-2); }
-  .step::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--pink)); margin-bottom: 18px; }
-  .step h3 { margin: 0 0 6px; font-size: 18px; }
-  .step p { margin: 0; color: var(--muted); font-size: 15px; }
-
-  /* codice */
-  .term { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: #0a0c10; box-shadow: 0 30px 80px -30px #000; }
-  .term .frame-bar span { transform: none; }
-  pre { margin: 0; padding: 22px 24px; overflow-x: auto; font: 14px/1.75 "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #d6d9e3; }
-  pre .c { color: #6b7385; } pre .p { color: var(--green); user-select: none; } pre .k { color: var(--accent-2); }
-  .tabs { display: inline-flex; padding: 4px; border-radius: 12px; background: var(--panel); border: 1px solid var(--border); margin: 28px 0 16px; }
-  .tabs button { font: inherit; font-size: 14px; font-weight: 600; color: var(--muted); background: none; border: 0; padding: 8px 16px; border-radius: 9px; cursor: pointer; }
-  .tabs button.on { background: var(--accent); color: #fff; }
-  .panel-hidden { display: none; }
-  .note { color: var(--muted); font-size: 14px; margin-top: 14px; }
-  .note code, .sub code { background: var(--panel-2); padding: 2px 7px; border-radius: 6px; font-size: 13px; color: var(--text); }
-
-  /* tecnologie */
-  .stack { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 36px; }
-  .stack span { padding: 9px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-2); color: var(--muted); font-size: 14px; font-weight: 500; }
-  .stack span b { color: var(--text); font-weight: 600; }
-
-  /* invito finale */
-  .final { text-align: center; padding: 72px 28px; border-radius: 28px; border: 1px solid #7c5cff40; position: relative; overflow: hidden;
-    background: radial-gradient(500px 240px at 50% 0%, #7c5cff33, transparent 70%), var(--bg-2); }
-  .final h2 { margin-top: 0; }
-  .final .cta { margin-top: 28px; }
-
-  footer { padding: 48px 0 64px; color: var(--muted); font-size: 14px; border-top: 1px solid #ffffff0d; margin-top: 96px; }
-  footer .wrap { display: flex; gap: 24px; justify-content: space-between; flex-wrap: wrap; }
-  footer a { color: var(--muted); }
-  footer a:hover { color: var(--text); }
-
-  /* comparsa allo scorrimento */
-  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
-  .reveal.in { opacity: 1; transform: none; }
-</style>
+<link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
 
@@ -207,9 +31,12 @@
     <div class="nav-links">
       <a href="#funzionalita">Funzionalità</a>
       <a href="#click">Click</a>
+      <a href="#pratica">Pratica</a>
+      <a href="#registra">Registrazione</a>
       <a href="#come-funziona">Come funziona</a>
       <a href="#installa">Installa</a>
     </div>
+    <a class="lang" href="en/" hreflang="en" lang="en" title="English version">EN</a>
     <a class="btn small" href="https://github.com/teopost/noises">
       <svg viewBox="0 0 24 24"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>
       GitHub
@@ -222,7 +49,7 @@
     <div class="bars" aria-hidden="true"></div>
     <span class="pill">Open source · <b>Licenza MIT</b> · Self-hosted</span>
     <h1>Separa le tracce.<br><span class="grad">Studia. Suona.</span></h1>
-    <p class="lead">Noises è lo studio di pratica per musicisti che gira sul tuo server: isola voce, batteria e basso con l'AI, cambia tonalità e velocità in tempo reale, legge accordi e spartiti, e ti dà un click che segue davvero la band.</p>
+    <p class="lead">Noises è lo studio di pratica per musicisti che gira sul tuo server: isola voce, batteria e basso con l'AI, cambia tonalità e velocità in tempo reale, legge accordi e spartiti, ti dà un click che segue davvero la band, mette in loop i passaggi da studiare e registra la tua parte sopra il brano.</p>
     <div class="cta">
       <a class="btn primary" href="#installa">Installa in pochi minuti →</a>
       <a class="btn" href="https://github.com/teopost/noises">Guarda il codice</a>
@@ -320,6 +147,77 @@
   </div>
 </section>
 
+<section id="pratica" style="padding-top: 24px">
+  <div class="wrap split rev">
+    <div class="reveal">
+      <div class="kicker">Pratica</div>
+      <h2>Il tuo assolo in loop, finché non viene</h2>
+      <p class="sub">Seleziona il passaggio da studiare, dagli un nome e richiamalo con un clic. Il loop è già attivo e la testina all'inizio: premi Play e suona sopra, anche rallentato.</p>
+      <ul class="ticks">
+        <li><span><b>Sezioni salvate</b> nel progetto: "Assolo 1", "Bridge", "Riff finale". Il pulsante mostra la sezione in uso, la freccetta ▾ apre l'elenco.</span></li>
+        <li><span><b>Regolazione fine</b> di inizio e fine: 0,1 s o 0,01 s per clic, oppure al click precedente o successivo. Anche mentre suona, senza interrompere.</span></li>
+        <li><span><b>Restano al loro posto</b> a ogni velocità: studi l'assolo al 70% e poi lo porti a tempo.</span></li>
+        <li><span><b>Pre-click</b> a ogni ripartenza, per entrare a tempo sull'"1".</span></li>
+      </ul>
+    </div>
+    <div class="media reveal" aria-hidden="true">
+      <div class="frame flat">
+        <div class="frame-bar"><i></i><i></i><i></i><span>Loop — Assolo 1</span></div>
+        <div class="mock">
+          <div class="mock-bar">
+            <span class="b on">⟳ Loop</span><span class="t">1:52.4 – 2:14.0</span>
+            <span class="lbl">Inizio</span><span class="b sm acc">«</span><span class="b sm">‹</span><span class="b sm">›</span><span class="b sm acc">»</span>
+            <span class="lbl">Fine</span><span class="b sm acc">«</span><span class="b sm">‹</span><span class="b sm">›</span><span class="b sm acc">»</span>
+            <span class="b named">Assolo 1</span><span class="b sm">▾</span>
+          </div>
+          <div class="lanes">
+            <div class="lane-mock"><span class="name" style="--c:#ffb547">Batteria</span><div class="wave-mock" style="--c:#ffb547" data-seed="11"></div></div>
+            <div class="lane-mock"><span class="name" style="--c:#4fd1c5">Basso</span><div class="wave-mock" style="--c:#4fd1c5" data-seed="23"></div></div>
+            <div class="lane-mock"><span class="name" style="--c:#7cc4ff">Chitarra</span><div class="wave-mock muted" style="--c:#7cc4ff" data-seed="37"></div></div>
+            <div class="loop-mock"><span>Assolo 1</span></div>
+            <div class="ph-mock" style="--at:.52"></div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">La chitarra originale è in muto: il loop ripete l'assolo e tu lo suoni sopra la band.</p>
+    </div>
+  </div>
+</section>
+
+<section id="registra" style="padding-top: 24px">
+  <div class="wrap split">
+    <div class="reveal">
+      <div class="kicker">Registrazione</div>
+      <h2>Registra la tua parte sopra la band</h2>
+      <p class="sub">Aggiungi una traccia vuota, scegli l'ingresso e premi ⏺. Suoni sopra il brano e la registrazione finisce nella timeline, già allineata al resto.</p>
+      <ul class="ticks">
+        <li><span><b>Microfono o scheda audio</b>: ingresso 1, 2 o stereo, con VU meter per regolare il livello prima di partire.</span></li>
+        <li><span><b>Forma d'onda dal vivo</b> mentre registri, con la latenza dell'audio compensata in automatico.</span></li>
+        <li><span><b>Più riprese sulla stessa traccia</b>: la nuova sostituisce solo il tratto rifatto, il resto rimane. Annulla per tornare alla precedente.</span></li>
+        <li><span><b>Ascoltati</b> al posto dell'originale, confrontali, ed esporta il risultato come qualsiasi altra traccia.</span></li>
+      </ul>
+    </div>
+    <div class="media reveal" aria-hidden="true">
+      <div class="frame flat">
+        <div class="frame-bar"><i></i><i></i><i></i><span>Registrazione in corso</span></div>
+        <div class="mock">
+          <div class="mock-bar">
+            <span class="b">▶</span><span class="b rec on">⏺</span><span class="t">2:03</span>
+            <span class="lbl">Ingresso</span><span class="b">Scheda audio · In 1</span>
+          </div>
+          <div class="lanes">
+            <div class="lane-mock"><span class="name" style="--c:#ffb547">Batteria</span><div class="wave-mock" style="--c:#ffb547" data-seed="11"></div></div>
+            <div class="lane-mock"><span class="name" style="--c:#7cc4ff">Chitarra</span><div class="wave-mock muted" style="--c:#7cc4ff" data-seed="37"></div></div>
+            <div class="lane-mock"><span class="name" style="--c:#ff4d5e"><span class="arm">⏺</span>La mia chitarra</span><div class="wave-mock" style="--c:#ff4d5e" data-seed="53" data-from=".4" data-fill=".64"></div></div>
+            <div class="ph-mock" style="--at:.64"></div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">La forma d'onda rossa cresce mentre suoni, a partire dal punto in cui hai premuto ⏺.</p>
+    </div>
+  </div>
+</section>
+
 <section style="padding-top: 24px">
   <div class="wrap split rev">
     <div class="reveal">
@@ -350,7 +248,7 @@
     <div class="steps">
       <div class="step reveal"><h3>Carica</h3><p>Trascina un file audio nella timeline o incolla un link YouTube. Il brano entra nella libreria e nel progetto.</p></div>
       <div class="step reveal"><h3>Separa e analizza</h3><p>Dal menu ⋯ della traccia scegli separazione, accordi, ritmo e note. Tutto gira sul tuo server, anche senza internet.</p></div>
-      <div class="step reveal"><h3>Suona</h3><p>Rallenta, trasponi, metti in loop il passaggio difficile, togli il tuo strumento, accendi il click. Poi esporta la base.</p></div>
+      <div class="step reveal"><h3>Suona</h3><p>Rallenta, trasponi, salva il passaggio difficile come sezione e ripetilo in loop, togli il tuo strumento, accendi il click e registrati. Poi esporta la base.</p></div>
     </div>
   </div>
 </section>
@@ -426,49 +324,6 @@
   </div>
 </footer>
 
-<script>
-  // onde decorative nell'intestazione
-  const bars = document.querySelector('.bars');
-  for (let i = 0; i < 28; i++) {
-    const b = document.createElement('i');
-    b.style.animationDelay = `${(Math.sin(i * 1.7) * 0.5 + 0.5) * -1.2}s`;
-    b.style.animationDuration = `${0.9 + ((i * 37) % 7) / 10}s`;
-    bars.appendChild(b);
-  }
-
-  // lo screenshot si "raddrizza" scorrendo
-  const frame = document.getElementById('hero-frame');
-  const flat = () => frame.classList.toggle('flat', window.scrollY > 60);
-  addEventListener('scroll', flat, { passive: true }); flat();
-
-  // comparsa delle sezioni
-  const io = 'IntersectionObserver' in window ? new IntersectionObserver((es) => es.forEach((e) => {
-    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-  }), { rootMargin: '0px 0px -8% 0px' }) : null;
-  document.querySelectorAll('.reveal').forEach((el) => (io ? io.observe(el) : el.classList.add('in')));
-
-  // demo del click: casse "umane" (leggermente irregolari) e le tre modalità
-  const N = 12, beat = 100 / N;
-  const kicks = Array.from({ length: N }, (_, i) => beat * (i + 0.5) + [0.9, -0.6, 1.4, -1.1, 0.4, 1.8, -0.3, 1.2, 2.1, 1.5, 2.6, 2.2][i]);
-  const drift = (i) => (kicks.slice(Math.max(0, i - 2), i + 3).reduce((a, k, j, arr) => a + k - beat * (Math.max(0, i - 2) + j + 0.5), 0)
-    / kicks.slice(Math.max(0, i - 2), i + 3).length);
-  document.querySelectorAll('.ticks-row').forEach((row) => {
-    const mode = row.dataset.mode;
-    kicks.forEach((k) => { const d = document.createElement('span'); d.className = 'kick'; d.style.left = `${k}%`; row.appendChild(d); });
-    for (let i = 0; i < N; i++) {
-      const x = mode === 'adapt' ? kicks[i] : mode === 'smooth' ? beat * (i + 0.5) + drift(i) : beat * (i + 0.5);
-      const t = document.createElement('i');
-      if (i % 4 === 0) t.className = 'acc';
-      t.style.left = `calc(${x}% - 1.5px)`;
-      row.appendChild(t);
-    }
-  });
-
-  // schede di installazione
-  document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
-    document.querySelectorAll('.tabs button').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-selected', x === b); });
-    document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('panel-hidden', p.dataset.panel !== b.dataset.tab));
-  }));
-</script>
+<script src="assets/site.js"></script>
 </body>
 </html>
