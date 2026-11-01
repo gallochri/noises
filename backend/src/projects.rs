@@ -29,6 +29,19 @@ pub struct PTrack {
     /// "original" = brano intero, altrimenti il nome della traccia separata
     pub part: String,
     pub clips: Vec<Clip>,
+    /// traccia di registrazione: resta armabile e una nuova ripresa si sovrappone alla precedente
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub rec: bool,
+}
+
+/// Sezione salvata del progetto (es. "Assolo"): intervallo da riascoltare in loop.
+/// Inizio e fine in secondi alla velocità originale.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Region {
+    pub id: String,
+    pub name: String,
+    pub start: f64,
+    pub end: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -46,6 +59,8 @@ pub struct Project {
     pub groups: Vec<TrackGroup>,
     #[serde(default)]
     pub markers: Vec<Marker>,
+    #[serde(default)]
+    pub regions: Vec<Region>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub settings: Option<serde_json::Value>,
 }
@@ -186,6 +201,7 @@ pub async fn create(
         tracks: vec![],
         groups: vec![],
         markers: vec![],
+        regions: vec![],
         settings: None,
     };
     Ok(Json(store(&st, p)?))
@@ -203,6 +219,8 @@ pub struct StateBody {
     groups: Vec<TrackGroup>,
     #[serde(default)]
     markers: Vec<Marker>,
+    #[serde(default)]
+    regions: Vec<Region>,
 }
 
 /// Salva lo stato dell'editor (tracce con le loro clip, gruppi, segnalibri, nome).
@@ -213,12 +231,19 @@ pub async fn put_state(
     Json(b): Json<StateBody>,
 ) -> Result<StatusCode, AppError> {
     let mut p = get(&st, &pid)?;
-    if b.tracks.len() > 200 || b.groups.len() > 100 || b.markers.len() > 500 {
+    if b.tracks.len() > 200 || b.groups.len() > 100 || b.markers.len() > 500 || b.regions.len() > 200 {
         return Err(bad_request("progetto troppo grande"));
     }
     {
         let songs = st.0.songs.read().unwrap();
         for t in &b.tracks {
+            // traccia vuota (pronta per registrare): nessun brano e nessuna clip
+            if t.song.is_empty() {
+                if t.part != "original" || !t.clips.is_empty() || t.name.is_empty() || t.name.len() > 64 {
+                    return Err(bad_request(format!("traccia non valida: {}", t.name)));
+                }
+                continue;
+            }
             let Some(s) = songs.get(&t.song) else {
                 return Err(bad_request(format!("brano sconosciuto: {}", t.song)));
             };
@@ -239,12 +264,17 @@ pub async fn put_state(
     if !b.markers.iter().all(|m| m.t.is_finite() && m.t >= 0.0) {
         return Err(bad_request("segnalibri non validi"));
     }
+    if !b.regions.iter().all(|r| r.start.is_finite() && r.end.is_finite() && r.start >= 0.0 && r.end > r.start && r.id.len() <= 32) {
+        return Err(bad_request("sezioni non valide"));
+    }
     p.name = clean_name(&b.name)?;
     p.tracks = b.tracks;
     // nomi lunghi (titoli da YouTube) accorciati invece di rifiutare il salvataggio
     p.groups = b.groups.into_iter().map(|mut g| { g.name = g.name.chars().take(120).collect(); g }).collect();
     p.markers = b.markers.into_iter().map(|mut m| { m.name = m.name.trim().chars().take(60).collect(); m }).collect();
     p.markers.sort_by(|a, c| a.t.total_cmp(&c.t));
+    p.regions = b.regions.into_iter().map(|mut r| { r.name = r.name.trim().chars().take(60).collect(); r }).collect();
+    p.regions.sort_by(|a, c| a.start.total_cmp(&c.start));
     store(&st, p)?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -355,7 +385,7 @@ pub fn migrate(st: &AppState) {
             let clips = layout.stem_clips.get(stem).cloned().unwrap_or_else(|| {
                 vec![Clip { id: format!("{stem}-0"), start: 0.0, offset: 0.0, duration }]
             });
-            tracks.push(PTrack { name: stem.clone(), label: String::new(), song: song.id.clone(), part: stem.clone(), clips });
+            tracks.push(PTrack { name: stem.clone(), label: String::new(), song: song.id.clone(), part: stem.clone(), clips, rec: false });
         }
         for ut in &song.user_tracks {
             let tname = format!("user:{}", ut.id);
@@ -390,7 +420,7 @@ pub fn migrate(st: &AppState) {
             ns.created_at = now_secs();
             st.0.songs.write().unwrap().insert(new_id.clone(), ns.clone());
             let _ = st.save_meta(&ns);
-            tracks.push(PTrack { name: tname, label: ut.name.clone(), song: new_id, part: "original".into(), clips: ut.clips.clone() });
+            tracks.push(PTrack { name: tname, label: ut.name.clone(), song: new_id, part: "original".into(), clips: ut.clips.clone(), rec: false });
         }
         if !layout.order.is_empty() {
             let pos = |n: &String| layout.order.iter().position(|x| x == n).unwrap_or(usize::MAX);
@@ -429,6 +459,7 @@ pub fn migrate(st: &AppState) {
             tracks,
             groups,
             markers: song.markers.clone(),
+            regions: vec![],
             settings: song.settings.clone(),
         };
         if save_project(st, &p).is_ok() {

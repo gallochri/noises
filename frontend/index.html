@@ -194,6 +194,7 @@
           <button id="back" class="icon-btn" title="Indietro 5 s (←)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 6v12L3 12zM20 6v12l-8-6z"/></svg></button>
           <button id="play" class="play" title="Play/Pausa (spazio)">▶</button>
           <button id="stop" class="icon-btn" title="Stop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
+          <button id="rec" class="icon-btn rec-btn" title="Registra una traccia dal microfono mentre il progetto suona (R)" aria-label="Registra"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/></svg></button>
           <button id="fwd" class="icon-btn" title="Avanti 5 s (→)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6v12l8-6zM13 6v12l8-6z"/></svg></button>
           <span class="time"><span id="pos">0:00</span> / <span id="dur">0:00</span><span id="section" class="section"></span></span>
         </div>
@@ -224,10 +225,21 @@
           <span id="bpm" class="unit"></span>
           <button id="meter-btn" title="Metro, primo tempo della battuta e correzione del battito">4/4 ▾</button>
           <button id="analyze-notes" class="hidden" title="Rileva battiti e trascrive le note di tutte le tracce"><span class="emo">🎼</span> Analizza ritmo e note</button>
-          <button id="click" class="toggle" title="Click che segue i battiti rilevati nel brano (accento sul primo tempo)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l4.4 17H4.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M6.5 15.5h11" stroke="currentColor" stroke-width="1.6"/><path d="M12 15.5 17.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16.4" cy="8" r="1.6" fill="currentColor"/></svg> Click</button>
-          <button id="click-cfg" class="icon-btn" title="Impostazioni del click: volume, modalità, pre-conteggio">⚙</button>
+          <span class="split-btn"><button id="precount" class="toggle" title="Pre-click: battute di conteggio prima dell'avvio della riproduzione">Pre-click</button>
+          <button id="precount-cfg" class="split-caret" title="Impostazioni del pre-click: battute e volume" aria-label="Opzioni del pre-click">▾</button></span>
+          <div id="precount-panel" class="menu click-panel hidden">
+            <label>Battute
+              <select id="countin-sel" title="Battute di pre-conteggio prima dell'avvio">
+                <option value="1">1 battuta</option>
+                <option value="2">2 battute</option>
+              </select>
+            </label>
+            <label>Volume <input id="countin-vol" type="range" min="0" max="1.5" step="0.05" title="Volume del pre-click"></label>
+          </div>
+          <span class="split-btn"><button id="click" class="toggle" title="Click che segue i battiti rilevati nel brano (accento sul primo tempo)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 3h5.6l4.4 17H4.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M6.5 15.5h11" stroke="currentColor" stroke-width="1.6"/><path d="M12 15.5 17.5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16.4" cy="8" r="1.6" fill="currentColor"/></svg> Click</button>
+          <button id="click-cfg" class="split-caret" title="Impostazioni del click: suono, volume, modalità" aria-label="Opzioni del click">▾</button></span>
           <div id="click-panel" class="menu click-panel hidden">
- <label>Suono <select id="click-sound" title="Suono del metronomo (anche per il pre-conteggio)"></select></label>
+ <label>Suono <select id="click-sound" title="Suono del metronomo (anche per il pre-click)"></select></label>
             <label>Volume <input id="click-vol" type="range" min="0" max="1.5" step="0.05" title="Volume del click"></label>
             <label>Modalità
               <select id="click-mode" title="Adattivo: ogni colpo segue il battito reale della registrazione. Tempo medio: segue il tempo della canzone livellando le irregolarità. Metronomo: BPM fisso, non segue i musicisti.">
@@ -249,13 +261,6 @@
                 <button id="nudge-reset" title="Nessuno spostamento">↺</button>
               </span>
             </div>
-            <label>Pre-conteggio
-              <select id="countin-sel" title="Pre-conteggio prima dell'avvio">
-                <option value="0">Nessuno</option>
-                <option value="1">1 battuta</option>
-                <option value="2">2 battute</option>
-              </select>
-            </label>
           </div>
         </div>
 
@@ -269,7 +274,21 @@
         <button id="play-sel" title="Riproduci la selezione (trascina sulla timeline per selezionare)">▶ Selezione</button>
         <button id="loop" title="Ripeti la selezione in loop (L)">⟳ Loop</button>
         <span id="sel-info" class="sel-info"></span>
+        <span id="sel-nudge" class="sel-nudge hidden" title="Regolazione fine del loop: ‹ › = 0,1 s (Shift: 0,01 s, tieni premuto per scorrere) · « » = click precedente/successivo">
+          <span class="lbl">Inizio</span>
+          <button data-edge="start" data-dir="-1" data-beat class="beat" title="Inizio al click precedente">«</button>
+          <button data-edge="start" data-dir="-1" title="Anticipa l'inizio di 0,1 s (Shift: 0,01 s)">‹</button>
+          <button data-edge="start" data-dir="1" title="Ritarda l'inizio di 0,1 s (Shift: 0,01 s)">›</button>
+          <button data-edge="start" data-dir="1" data-beat class="beat" title="Inizio al click successivo">»</button>
+          <span class="lbl">Fine</span>
+          <button data-edge="end" data-dir="-1" data-beat class="beat" title="Fine al click precedente">«</button>
+          <button data-edge="end" data-dir="-1" title="Anticipa la fine di 0,1 s (Shift: 0,01 s)">‹</button>
+          <button data-edge="end" data-dir="1" title="Ritarda la fine di 0,1 s (Shift: 0,01 s)">›</button>
+          <button data-edge="end" data-dir="1" data-beat class="beat" title="Fine al click successivo">»</button>
+        </span>
         <button id="sel-clear" class="ghost" title="Annulla selezione (Esc)">✕</button>
+        <button id="sel-save" class="hidden">＋ Salva sezione</button>
+        <span id="regions-split" class="split-btn"><button id="regions-btn" class="regions-btn">☰ Sezioni</button><button id="regions-cfg" class="split-caret" title="Elenco delle sezioni salvate" aria-label="Elenco delle sezioni salvate">▾</button></span>
         <span class="tsep"></span>
         <button id="undo" class="icon-btn" disabled title="Annulla (Ctrl+Z)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5 3 10l6 5v-3.5c5 0 8.5 1.3 11 5.5-.8-5.5-4-9.5-11-10z"/></svg></button>
         <button id="redo" class="icon-btn" disabled title="Ripeti (Ctrl+Y)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 6 5-6 5v-3.5c-5 0-8.5 1.3-11 5.5.8-5.5 4-9.5 11-10z"/></svg></button>
@@ -394,6 +413,7 @@
   <div id="pl-menu" class="menu hidden"></div>
   <div id="chord-menu" class="menu chord-menu hidden"></div>
   <div id="track-menu" class="menu track-menu hidden"></div>
+  <div id="regions-menu" class="menu regions-menu hidden"></div>
   <div id="marker-menu" class="menu marker-menu hidden"></div>
 
   <dialog id="export-dlg">
@@ -477,6 +497,7 @@
         <button type="button" data-tab="lib" class="on">♫ Libreria</button>
         <button type="button" data-tab="pc"><span class="emo">💻</span> Dal computer</button>
         <button type="button" data-tab="yt">▶ YouTube</button>
+        <button type="button" data-tab="rec">⏺ Registra</button>
       </div>
       <div class="at-pane" data-pane="lib">
         <input id="at-search" class="search" type="search" placeholder="Cerca nella libreria…" autocomplete="off">
@@ -488,6 +509,11 @@
             <span>oppure <button type="button" id="at-pick" class="link">scegli dal computer</button></span></div>
         </div>
         <p class="hint">Il file viene salvato nella libreria e aggiunto al progetto dalla posizione della testina.</p>
+      </div>
+      <div class="at-pane hidden" data-pane="rec">
+        <button type="button" id="at-empty" class="primary">＋ Aggiungi traccia vuota</button>
+        <p class="hint">La traccia vuota viene preparata per la registrazione: premi ⏺ nel trasporto (o R) e suona sopra al progetto.
+          La registrazione parte dalla testina e finisce con pausa o stop.</p>
       </div>
       <div class="at-pane hidden" data-pane="yt">
         <div class="yt-row">
@@ -518,7 +544,9 @@
   <script src="notes.js"></script>
   <script src="score.js"></script>
   <script src="markers.js"></script>
+  <script src="sections.js"></script>
   <script src="usertracks.js"></script>
+  <script src="recorder.js"></script>
   <script src="editor.js"></script>
   <script src="project.js"></script>
   <script src="setlist.js"></script>

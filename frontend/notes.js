@@ -917,7 +917,7 @@ function playWithCountIn() {
   const nudge = clickNudge(); // stessa regolazione fine del click
   for (const b of plan.beats) {
     const when = start + b.rel + nudge;
-    playClick(when, b.num === 1, Math.max(0.6, state.clickVol));
+    playClick(when, b.num === 1, state.countInVol);
     countTimers.push(setTimeout(() => showCount(b.num), Math.max(0, (when - engine.ctx.currentTime) * 1000)));
   }
   // il conteggio può proseguire sopra l'inizio della musica: il numero sparisce sull'"1"
@@ -994,26 +994,34 @@ function setupClick() {
   try {
     state.click = localStorage.getItem('noises.click') === '1';
     state.clickVol = Number(localStorage.getItem('noises.clickVol') || 0.8);
-    state.countIn = Number(localStorage.getItem('noises.countIn') || 0);
+    // pre-click: acceso/spento separato dal numero di battute (state.countIn = battute effettive, 0 se spento)
+    const savedCountIn = Number(localStorage.getItem('noises.countIn') || 0);
+    state.countInBars = Number(localStorage.getItem('noises.countInBars') || savedCountIn || 1);
+    state.countInVol = Number(localStorage.getItem('noises.countInVol') || 0.8);
+    state.countIn = savedCountIn ? state.countInBars : 0;
     // predefinito: aderente. Chiave nuova, così la vecchia predefinita (fluido) salvata
     // automaticamente non resta: la scelta riparte da "aderente" una volta sola
     state.clickMode = localStorage.getItem('noises.clickMode2') || 'tight';
     state.clickSound = localStorage.getItem('noises.clickSound') || 'beep';
   } catch {
-    state.click = false; state.clickVol = 0.8; state.countIn = 0; state.clickMode = 'tight'; state.clickSound = 'beep';
+    state.click = false; state.clickVol = 0.8; state.countIn = 0; state.countInBars = 1; state.countInVol = 0.8; state.clickMode = 'tight'; state.clickSound = 'beep';
   }
   const save = () => {
     try {
       localStorage.setItem('noises.click', state.click ? '1' : '0');
       localStorage.setItem('noises.clickVol', String(state.clickVol));
       localStorage.setItem('noises.countIn', String(state.countIn));
+      localStorage.setItem('noises.countInBars', String(state.countInBars));
+      localStorage.setItem('noises.countInVol', String(state.countInVol));
       localStorage.setItem('noises.clickMode2', state.clickMode);
       localStorage.setItem('noises.clickSound', state.clickSound);
     } catch {}
   };
   $('#click').classList.toggle('on', state.click);
   $('#click-vol').value = state.clickVol;
-  $('#countin-sel').value = String(state.countIn);
+  $('#precount').classList.toggle('on', !!state.countIn);
+  $('#countin-sel').value = String(state.countInBars);
+  $('#countin-vol').value = state.countInVol;
   $('#click').addEventListener('click', () => {
     state.click = !state.click;
     $('#click').classList.toggle('on', state.click);
@@ -1021,18 +1029,31 @@ function setupClick() {
     save();
   });
   $('#click-vol').addEventListener('input', (e) => { state.clickVol = Number(e.target.value); save(); });
-  $('#countin-sel').addEventListener('change', (e) => { state.countIn = Number(e.target.value); save(); });
+  $('#precount').addEventListener('click', () => {
+    state.countIn = state.countIn ? 0 : state.countInBars;
+    $('#precount').classList.toggle('on', !!state.countIn);
+    save();
+  });
+  $('#countin-sel').addEventListener('change', (e) => {
+    state.countInBars = Number(e.target.value);
+    if (state.countIn) state.countIn = state.countInBars;
+    save();
+  });
+  $('#countin-vol').addEventListener('input', (e) => { state.countInVol = Number(e.target.value); save(); });
   $('#click-mode').value = state.clickMode;
-  // pannello ⚙ del click: si apre sotto il pulsante, si chiude cliccando fuori o con Esc
-  $('#click-cfg').addEventListener('click', (e) => {
-    e.stopPropagation();
-    $('#click-panel').classList.toggle('hidden');
-  });
-  document.addEventListener('pointerdown', (e) => {
-    if (!e.target.closest('#click-panel, #click-cfg')) $('#click-panel').classList.add('hidden');
-  });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#click-panel').classList.add('hidden'); });
-  $('#click-panel').addEventListener('keydown', (e) => { if (e.key !== 'Escape') e.stopPropagation(); });
+  // pannelli ⚙ del pre-click e del click: si aprono sotto il pulsante, si chiudono cliccando fuori o con Esc
+  for (const [cfg, panel, other] of [['#click-cfg', '#click-panel', '#precount-panel'], ['#precount-cfg', '#precount-panel', '#click-panel']]) {
+    $(cfg).addEventListener('click', (e) => {
+      e.stopPropagation();
+      $(other).classList.add('hidden');
+      $(panel).classList.toggle('hidden');
+    });
+    document.addEventListener('pointerdown', (e) => {
+      if (!e.target.closest(`${panel}, ${cfg}`)) $(panel).classList.add('hidden');
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $(panel).classList.add('hidden'); });
+    $(panel).addEventListener('keydown', (e) => { if (e.key !== 'Escape') e.stopPropagation(); });
+  }
   // regolazione fine del click (per brano): passi di 5 ms
   document.querySelectorAll('[data-nudge]').forEach((b) => b.addEventListener('click', () => {
     if (!hasGrid()) return;
@@ -1086,7 +1107,7 @@ function updateRhythmControls() {
   const ok = hasGrid();
   // booleano esplicito: con `undefined` classList.toggle alternerebbe invece di impostare
   const hide = !ok && !!(state.notesMissing || state.notesBusy);
-  for (const id of ['#click', '#click-cfg', '#click-mode', '#countin-sel', '#meter-btn', '#fixed-bpm']) {
+  for (const id of ['#precount', '#precount-cfg', '#click', '#click-cfg', '#click-mode', '#countin-sel', '#meter-btn', '#fixed-bpm']) {
     $(id).disabled = !ok;
     $(id).classList.toggle('hidden', hide);
   }

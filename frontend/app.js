@@ -103,7 +103,7 @@ const engine = {
 
   trackObject(t, p) {
     return {
-      name: t.name, song: t.song, part: t.part, label: t.label || '', peaks: t.peaks,
+      name: t.name, song: t.song, part: t.part, label: t.label || '', peaks: t.peaks, rec: !!t.rec,
       clips: t.clips.map((c) => ({ ...c })), srcDuration: t.l.length / this.sr,
       muted: !!(p && p.muted), solo: !!(p && p.solo), volume: p && p.volume != null ? p.volume : 1,
     };
@@ -664,6 +664,8 @@ function closePlayer() {
   state.chords = null;
   state.notes = null;
   state.markers = [];
+  state.regions = [];
+  closeRegionsMenu();
   closeChordMenu();
   closeMarkerMenu();
   state.current = null;
@@ -854,21 +856,34 @@ function buildTracks() {
     const song = songById(t.song);
     const isRefStem = ref && t.song === ref.id && t.part !== 'original' && ref.status === 'ready';
     const row = document.createElement('div');
-    row.className = `track audio-row${item.child ? ' child' : ''}`;
+    row.className = `track audio-row${item.child ? ' child' : ''}${isRecTrack(t) ? ' rec-track' : ''}`;
     row.innerHTML = `
       <div class="track-head">
         <div class="track-title"><span class="grip" title="Trascina per cambiare l'ordine (Alt+↑/↓)">⠿</span><span class="swatch" style="background:${color}"></span>
           <input class="tname" value="${esc(t.label)}" placeholder="${esc(title)}" maxlength="60" title="${esc(title)} — clic per rinominare"></div>
         <div class="track-btns">
+          ${isRecTrack(t) ? '<button class="arm" title="Registra su questa traccia: premi ⏺ nel trasporto (R)">⏺</button>' : ''}
           <button class="m" title="Muto">M</button>
           <button class="s" title="Solo">S</button>
           <input type="range" class="vol" min="0" max="1.5" step="0.01" value="${t.volume}" title="Volume">
           <span class="split-badge hidden" title="Separazione in corso"></span>
           <button class="tmenu" title="Altre azioni">⋯</button>
         </div>
+        ${isRecTrack(t) ? `<div class="rec-line">
+          <select class="rec-dev" title="Sorgente della registrazione"></select>
+          <select class="rec-ch" title="Ingressi da registrare: 1 o 2 (traccia mono) oppure 1+2 (stereo)">
+            <option value="stereo">1+2</option><option value="1">In 1</option><option value="2">In 2</option>
+          </select>
+          <div class="vu" title="Livello del segnale in ingresso (rosso: saturazione, abbassa il gain sulla scheda)"><div class="vu-fill"></div></div>
+        </div>` : ''}
       </div>
       <div class="lane"><canvas class="ucanvas vcanvas"></canvas></div>`;
     row.querySelector('.m').addEventListener('click', () => { t.muted = !t.muted; syncTrackButtons(); });
+    const arm = row.querySelector('.arm');
+    if (arm) {
+      arm.addEventListener('click', () => setRecTarget(state.recTarget === t.name ? null : t.name));
+      setupRecLine(t, row);
+    }
     row.querySelector('.s').addEventListener('click', () => { t.solo = !t.solo; syncTrackButtons(); });
     row.querySelector('.vol').addEventListener('input', (e) => { t.volume = Number(e.target.value); engine.updateGains(); });
     const name = row.querySelector('.tname');
@@ -915,6 +930,8 @@ function syncTrackButtons() {
     if (!tr.row) continue;
     tr.row.querySelector('.m').classList.toggle('on', tr.muted);
     tr.row.querySelector('.s').classList.toggle('on', tr.solo);
+    const arm = tr.row.querySelector('.arm');
+    if (arm) arm.classList.toggle('on', state.recTarget === tr.name);
     tr.row.classList.toggle('silent', !engine.isAudible(tr));
   }
   drawOverview();
@@ -1204,9 +1221,11 @@ function updateSelectionUI() {
   $('#play-sel').disabled = !sel;
   $('#sel-clear').classList.toggle('hidden', !sel);
   $('#loop').classList.toggle('on', state.loopOn);
+  const reg = regionOfSelection();
   $('#sel-info').textContent = sel
     ? `${fmtPrecise(sel.start)} – ${fmtPrecise(sel.end)} (${(sel.end - sel.start).toFixed(1)} s)`
     : '';
+  updateRegionsUI(reg);
   $('#selection').classList.toggle('loop', state.loopOn);
   positionSelection();
   positionOverview();
@@ -1938,6 +1957,8 @@ function startApp() {
   setupScore();
   setupMarkers();
   setupUserTracks();
+  setupRecorder();
+  setupSections();
   setupEditor();
   setupProjects();
   updateSelectionUI();

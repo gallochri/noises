@@ -14,14 +14,27 @@ const newTrackName = () => `t${Math.random().toString(36).slice(2, 10)}`;
 const newClipId = () => Math.random().toString(36).slice(2, 14);
 
 /** Nome mostrato della traccia: "Brano" per il brano intero, "Voce · Brano" per le separate. */
+/** Traccia vuota: nessun brano, pronta per registrare dal microfono. */
+const isEmptyTrack = (t) => !t.song;
+/** Traccia di registrazione: vuota o già registrata; resta armabile per nuove riprese. */
+const isRecTrack = (t) => isEmptyTrack(t) || !!t.rec;
+const EMPTY_COLOR = '#ff8a95';
+
+function emptyAudio() {
+  const l = new Float32Array(0);
+  return { l, r: l, peaks: new Float32Array(0) };
+}
+
 function trackTitle(t) {
   if (t.label) return t.label;
+  if (isEmptyTrack(t)) return 'Traccia vuota';
   const s = songById(t.song);
   const name = s ? s.name : 'Brano rimosso';
   return t.part === 'original' ? name : `${LABELS[t.part] || t.part} · ${name}`;
 }
 
 function trackColor(t) {
+  if (isRecTrack(t)) return EMPTY_COLOR;
   return t.part === 'original' ? USER_COLOR : COLORS[t.part] || '#aaa';
 }
 
@@ -165,7 +178,9 @@ async function openProject(id) {
   $('#chord-song').textContent = '';
   initLayout(p);
   state.markers = (p.markers || []).map((m) => ({ ...m }));
+  state.regions = (p.regions || []).map((r) => ({ ...r }));
   closeMarkerMenu();
+  closeRegionsMenu();
   renderProjects();
   closeDrawer();
   showSkeleton(p.tracks.length);
@@ -199,9 +214,13 @@ async function loadProjectTracks(p) {
   report();
   try {
     await engine.ready;
-    const valid = p.tracks.filter((t) => songById(t.song));
+    const valid = p.tracks.filter((t) => isEmptyTrack(t) || songById(t.song));
     if (valid.length < p.tracks.length) toast('Alcune tracce puntano a brani eliminati dalla libreria e sono state tolte');
     const list = await Promise.all(valid.map(async (t, i) => {
+      if (isEmptyTrack(t)) {
+        decoded++;
+        return { name: t.name, song: '', part: t.part, label: t.label, clips: [], rec: true, ...emptyAudio() };
+      }
       const data = await fetchWithProgress(sourceUrl(t.song, t.part), (got, total) => {
         Object.assign(prog[i], { started: true, got, total });
         report();
@@ -209,7 +228,7 @@ async function loadProjectTracks(p) {
       const audio = await decodeToArrays(data);
       decoded++;
       report();
-      return { name: t.name, song: t.song, part: t.part, label: t.label, clips: t.clips, ...audio };
+      return { name: t.name, song: t.song, part: t.part, label: t.label, clips: t.clips, rec: !!t.rec, ...audio };
     }));
     if (seq !== state.loadSeq) return;
     const pending = state.pending;
@@ -225,7 +244,7 @@ async function loadProjectTracks(p) {
     engine.setLoop(state.loopOn && state.sel ? { ...state.sel } : null);
     updateSelectionUI();
     // riferimento iniziale: la prima traccia separata, altrimenti la prima traccia
-    const ref = engine.tracks.find((t) => t.part !== 'original') || engine.tracks[0];
+    const ref = engine.tracks.find((t) => t.song && t.part !== 'original') || engine.tracks.find((t) => t.song);
     if (ref) setReference(ref, true);
     else buildTracks();
     setLoader(null);
@@ -241,9 +260,10 @@ async function loadProjectTracks(p) {
 function projectState() {
   return {
     name: (state.current && state.current.name) || 'Progetto',
-    tracks: engine.tracks.map((t) => ({ name: t.name, label: t.label || '', song: t.song, part: t.part, clips: t.clips })),
+    tracks: engine.tracks.map((t) => ({ name: t.name, label: t.label || '', song: t.song, part: t.part, clips: t.clips, rec: !!t.rec })),
     groups: deep(state.groups),
     markers: state.markers || [],
+    regions: state.regions || [],
   };
 }
 
@@ -386,11 +406,14 @@ function updateSplitBadges() {
 async function duplicateTrack(t) {
   setLoader(`Duplicazione di "${trackTitle(t)}"…`, '', null);
   try {
-    const r = await fetch(sourceUrl(t.song, t.part));
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const audio = await decodeToArrays(await r.arrayBuffer());
+    let audio = emptyAudio();
+    if (!isEmptyTrack(t)) {
+      const r = await fetch(sourceUrl(t.song, t.part));
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      audio = await decodeToArrays(await r.arrayBuffer());
+    }
     pushUndo('Duplica traccia');
-    const copy = engine.addTrack({ name: newTrackName(), song: t.song, part: t.part,
+    const copy = engine.addTrack({ name: newTrackName(), song: t.song, part: t.part, rec: t.rec,
       label: `${trackTitle(t)} (copia)`, clips: t.clips.map((c) => ({ ...c, id: newClipId() })), ...audio });
     engine.tracks.splice(engine.tracks.indexOf(copy), 1);
     engine.tracks.splice(engine.tracks.indexOf(t) + 1, 0, copy);
@@ -511,6 +534,7 @@ function setupShell() {
 
   document.querySelectorAll('.at-tabs button').forEach((b) => b.addEventListener('click', () => setAddTrackTab(b.dataset.tab)));
   $('#at-search').addEventListener('input', renderAddTrackList);
+  $('#at-empty').addEventListener('click', () => { $('#addtrack-dlg').close(); addEmptyTrack(); });
   $('#at-pick').addEventListener('click', () => { $('#addtrack-dlg').close(); $('#add-track-file').click(); });
   const drop = $('#at-drop');
   drop.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.add('over'); });

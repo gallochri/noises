@@ -55,6 +55,11 @@ click intelligente ed esportazione di basi.
 - **Annulla/ripeti** (`Ctrl+Z` / `Ctrl+Y`), **segnalibri** con nome e navigazione, **selezione** e **loop** con precisione al campione.
 - **Zoom** in pixel al secondo (slider, `Ctrl` + rotella o pinch) e **panoramica** del progetto con un riquadro da trascinare.
 
+### Pratica e registrazione
+- **Sezioni salvate**: dai un nome a una porzione del brano (per esempio "Assolo 1") e richiamala con un clic dal pulsante **Sezioni ▾**: viene selezionata con il loop già attivo e la testina all'inizio. Le sezioni sono salvate nel progetto e restano al loro posto a ogni velocità.
+- **Regolazione fine del loop**: inizio e fine si spostano di 0,1 s (`Shift`: 0,01 s, tenendo premuto scorrono) oppure al **click precedente o successivo**, anche mentre suona.
+- **Registrazione di una traccia** dal microfono o dalla scheda audio mentre il progetto suona: traccia vuota da **＋ Aggiungi traccia → ⏺ Registra**, scelta dell'ingresso e dei canali (1, 2 o stereo), **VU meter**, **forma d'onda dal vivo** e compensazione automatica della latenza. Le nuove riprese sulla stessa traccia sostituiscono solo il tratto rifatto.
+
 ### Analisi musicale
 - **Accordi** con [BTC](https://github.com/jayg996/BTC-ISMIR19): 170 accordi (maj, min, 7, maj7, m7, 6, m6, sus2, sus4, dim, dim7, m7♭5, aug, m(maj7)), riconosciuti sulle tracce separate o anche sul **brano intero**. Corsia degli accordi, accordo corrente e successivo, notazione C D E / Do Re Mi, **correzione manuale** e **ricalcolo**.
 - **Trascrizione delle note** di tutte le tracce con [Basic Pitch](https://github.com/spotify/basic-pitch) e un rilevatore dei colpi di batteria per bande di frequenza (cassa, rullante, hi-hat).
@@ -162,6 +167,9 @@ Le modifiche che toccano solo la documentazione e il sito (`docs/`) non avviano 
 | Avanti / indietro 5 s | `→` / `←` |
 | Selezionare una porzione | trascina sulla timeline o sul righello |
 | Loop della selezione | `L` o ⟳ Loop |
+| Salvare la selezione come sezione / richiamarla | **＋ Salva sezione** · **Sezioni ▾** |
+| Regolare inizio e fine del loop | ‹ › (0,1 s, `Shift`: 0,01 s) · « » (click precedente/successivo) |
+| Registrare una traccia | traccia vuota da **＋ Aggiungi traccia → ⏺ Registra**, poi `R` o ⏺ nel trasporto; pausa o stop per fermare |
 | Annullare selezione / chiudere i menu | `Esc` |
 | Tagliare le clip selezionate alla testina | `X` |
 | Eliminare la clip selezionata | `Canc` |
@@ -175,7 +183,7 @@ Le modifiche che toccano solo la documentazione e il sito (`docs/`) non avviano 
 | Note e spartito di una traccia separata | menu **⋯** → Mostra note · Spartito e tablatura |
 | Modificare le note | clic per selezionare · trascina per spostare · bordo destro per la durata · doppio clic per aggiungere · `Canc` per eliminare · `↑`/`↓` per un semitono · `Shift` per muoversi senza griglia |
 | Correggere un accordo | clic sull'accordo; trascina il bordo sinistro per spostare il cambio |
-| Metro e click | sezione **Ritmo**: `4/4 ▾`, **Click** e **⚙** (suono, volume, modalità, spostamento fine, pre-conteggio) |
+| Metro e click | sezione **Ritmo**: `4/4 ▾`, **Pre-click ▾** (battute, volume) e **Click ▾** (suono, volume, modalità, spostamento fine) |
 
 Per creare una **base**: metti in muto la voce, poi **⤓ Esporta** con *Click per tutto il brano* e *Pre-conteggio 1 battuta*.
 
@@ -333,6 +341,7 @@ Tutte le API sotto `/api` (tranne `/api/auth/*` e `/api/health`) richiedono una 
 - Il metro non viene rilevato automaticamente: si sceglie nel menu Ritmo.
 - Accordi non presenti nel vocabolario (none, undicesime, rivolti) vengono ricondotti all'accordo base più vicino.
 - Il browser tiene in memoria le tracce decodificate: circa 85 MB per traccia ogni 4 minuti di audio.
+- La registrazione richiede velocità al 100% e loop disattivato; durante la registrazione l'ingresso non viene riprodotto in cuffia.
 - Scarica e usa solo contenuti per cui hai i diritti, rispettando i termini dei servizi da cui li importi.
 
 ## Crediti e licenze di terze parti

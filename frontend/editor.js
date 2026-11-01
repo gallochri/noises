@@ -83,8 +83,8 @@ function saveLayout() {
 
 function snapshot() {
   return JSON.stringify({
-    tracks: engine.tracks.map((t) => ({ name: t.name, label: t.label || '', song: t.song, part: t.part, clips: t.clips })),
-    groups: state.groups, markers: state.markers || [],
+    tracks: engine.tracks.map((t) => ({ name: t.name, label: t.label || '', song: t.song, part: t.part, clips: t.clips, rec: !!t.rec })),
+    groups: state.groups, markers: state.markers || [], regions: state.regions || [],
   }, plain);
 }
 
@@ -104,10 +104,11 @@ async function restoreSnapshot(json) {
   // tracce nate dopo lo stato da ripristinare
   for (const t of [...engine.tracks]) if (!wanted.has(t.name)) engine.removeTrack(t);
   // tracce eliminate dopo: l'audio si riscarica dalla libreria
-  const missing = s.tracks.filter((st) => !trackByName(st.name) && songById(st.song));
+  const missing = s.tracks.filter((st) => !trackByName(st.name) && (isEmptyTrack(st) || songById(st.song)));
   if (missing.length) setLoader('Ripristino delle tracce…', '', null);
   try {
     for (const st of missing) {
+      if (isEmptyTrack(st)) { engine.addTrack({ ...st, ...emptyAudio() }); continue; }
       const r = await fetch(sourceUrl(st.song, st.part));
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const audio = await decodeToArrays(await r.arrayBuffer());
@@ -124,18 +125,22 @@ async function restoreSnapshot(json) {
     if (!t) continue;
     t.clips = deep(st.clips);
     t.label = st.label || '';
+    t.rec = isEmptyTrack(st) || !!st.rec;
     engine.setClips(t);
   }
   const order = new Map(s.tracks.map((t, i) => [t.name, i]));
   engine.tracks.sort((a, b) => (order.get(a.name) ?? 999) - (order.get(b.name) ?? 999));
   state.groups = s.groups;
   state.markers = s.markers;
+  state.regions = s.regions || [];
   state.selClip = null;
   engine.updateLength();
   if (state.refTrack && !trackByName(state.refTrack) && engine.tracks.length) setReference(engine.tracks[0], true);
   saveProject();
   layoutTimeline();
   buildTracks();
+  updateSelectionUI();
+  if (!$('#regions-menu').classList.contains('hidden')) renderRegionsMenu();
 }
 
 async function undo() {
@@ -525,6 +530,7 @@ function drawClipTrack(t) {
 
 function drawTrack(t) {
   drawClipTrack(t);
+  if (typeof drawRecLive === 'function') drawRecLive(t); // forma d'onda della registrazione in corso
 }
 
 // ------------------------------------------------------------- righe e comandi
@@ -584,6 +590,16 @@ function closeTrackMenu() {
   $('#track-menu').classList.add('hidden');
 }
 
+/** Rende una traccia audio intera una traccia di registrazione (armabile, nuove riprese sovrapposte) o viceversa. */
+function setRecTrack(t, on) {
+  pushUndo(on ? 'Usa per registrare' : 'Non usare per registrare');
+  t.rec = on;
+  if (!on && state.recTarget === t.name) setRecTarget(null);
+  saveProject();
+  buildTracks();
+  if (on) setRecTarget(t.name);
+}
+
 function openTrackMenu(t, anchor, isRefStem, song) {
   const menu = $('#track-menu');
   const waiting = state.pendingSplits.has(t.name);
@@ -597,6 +613,9 @@ function openTrackMenu(t, anchor, isRefStem, song) {
   }
   const busy = song && ['downloading', 'queued', 'processing'].includes(song.status);
   items.push({ icon: '🎵', label: 'Ricalcola accordi', disabled: !song || busy, run: () => recomputeChords(t) });
+  if (t.part === 'original' && !isEmptyTrack(t)) {
+    items.push({ icon: '⏺', label: t.rec ? 'Non usare per registrare' : 'Usa per registrare', disabled: rec.active || rec.busy, run: () => setRecTrack(t, !t.rec) });
+  }
   items.push({ icon: '✎', label: 'Rinomina', run: () => { const n = t.row.querySelector('.tname'); n.focus(); n.select(); } });
   items.push({ icon: '⧉', label: 'Duplica', run: () => duplicateTrack(t) });
   items.push({ icon: '⤓', label: 'Esporta', run: () => openExport(t) });
