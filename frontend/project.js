@@ -105,7 +105,7 @@ function renderProjects() {
     li.className = state.current && state.current.id === p.id ? 'active' : '';
     li.innerHTML = `<span class="pl-icon">◧</span>
       <span class="pl-name" title="${esc(p.songs.join(', ') || 'vuoto')}">${esc(p.name)}</span>
-      <button class="ren" title="Rinomina">✎</button><button class="del" title="Elimina progetto">✕</button>
+      <button class="bak" title="Backup completo (.zip): progetto e brani, da ripristinare anche su un'altra installazione">⤓</button><button class="ren" title="Rinomina">✎</button><button class="del" title="Elimina progetto">✕</button>
       <span class="count">${p.songs.length || ''}</span>`;
     li.addEventListener('click', () => openProject(p.id));
     li.querySelector('.ren').addEventListener('click', async (e) => {
@@ -121,6 +121,7 @@ function renderProjects() {
       p.name = name;
       renderProjects();
     });
+    li.querySelector('.bak').addEventListener('click', (e) => { e.stopPropagation(); backupProject(p); });
     li.querySelector('.del').addEventListener('click', async (e) => {
       e.stopPropagation();
       if (!(await uiConfirm(`Eliminare il progetto "${p.name}"?\nI brani restano nella libreria.`, { title: 'Elimina progetto', ok: 'Elimina', danger: true }))) return;
@@ -131,6 +132,79 @@ function renderProjects() {
     });
     ul.appendChild(li);
   }
+}
+
+// ------------------------------------------------------------- backup e ripristino
+
+let backupBusy = false;
+/** Scarica lo zip con il progetto e tutti i suoi brani (audio, tracce separate, analisi). */
+async function backupProject(p) {
+  if (backupBusy) return;
+  backupBusy = true;
+  try {
+    if (state.current && state.current.id === p.id) await saveProjectNow(); // anche le ultime modifiche
+    toast(`Preparazione del backup di "${p.name}"…`);
+    const res = await fetch(`/api/projects/${p.id}/backup`);
+    if (!res.ok) {
+      let msg = res.statusText;
+      try { msg = (await res.json()).error; } catch {}
+      throw new Error(tr(msg) || `HTTP ${res.status}`);
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get('Content-Disposition') || '';
+    const m = cd.match(/filename\*=UTF-8''([^;]+)/);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = m ? decodeURIComponent(m[1]) : `${p.name}.noises.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    toast(`Backup di "${p.name}" scaricato (${mb(blob.size)})`);
+  } catch (e) {
+    uiAlert(`Backup non riuscito: ${e.message}`);
+  } finally {
+    backupBusy = false;
+  }
+}
+
+/** Ripristina un progetto da uno zip di backup: i brani entrano nella libreria, il progetto si apre. */
+function restoreBackup(file) {
+  const bar = $('#restore-progress');
+  return new Promise((resolve) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/backup/restore');
+    bar.classList.remove('hidden', 'indeterminate');
+    bar.firstElementChild.style.width = '0';
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return;
+      bar.firstElementChild.style.width = `${(e.loaded / e.total) * 100}%`;
+      if (e.loaded >= e.total) bar.classList.add('indeterminate'); // estrazione sul server
+    };
+    const done = () => { bar.classList.add('hidden'); bar.classList.remove('indeterminate'); bar.firstElementChild.style.width = '0'; };
+    xhr.onload = async () => {
+      done();
+      let body = {};
+      try { body = JSON.parse(xhr.responseText); } catch {}
+      if (xhr.status < 200 || xhr.status >= 300) {
+        uiAlert(`Ripristino non riuscito: ${tr(body.error || xhr.statusText) || `HTTP ${xhr.status}`}`);
+        resolve(null);
+        return;
+      }
+      const parts = [];
+      if (body.songs_added) parts.push(`${body.songs_added} ${T(body.songs_added === 1 ? 'brano aggiunto alla libreria' : 'brani aggiunti alla libreria')}`);
+      if (body.songs_reused) parts.push(`${body.songs_reused} ${T(body.songs_reused === 1 ? 'già presente' : 'già presenti')}`);
+      toast(`Progetto "${body.name}" ripristinato${parts.length ? ` (${parts.join(', ')})` : ''}`);
+      await Promise.all([refreshProjects(), refreshSongs()]);
+      closeDrawer();
+      openProject(body.id);
+      resolve(body);
+    };
+    xhr.onerror = () => { done(); uiAlert('Ripristino non riuscito: errore di rete'); resolve(null); };
+    xhr.send(fd);
+  });
 }
 
 async function createProject(name) {
@@ -145,8 +219,11 @@ async function createProject(name) {
 
 // ------------------------------------------------------------------ apertura
 
+const LAST_PROJECT_KEY = 'noises.lastProject';
+
 async function openProject(id) {
   if (state.current && state.current.id === id) return;
+  try { localStorage.setItem(LAST_PROJECT_KEY, id); } catch {}
   const seq = ++projectSeq;
   if (state.current) {
     if (typeof syncPresetNow === 'function' && syncPresetNow()) saveProject();
@@ -501,11 +578,24 @@ function setupProjects() {
     saveProject();
   });
   $('#title').addEventListener('input', fitTitle);
+  $('#project-restore').addEventListener('click', () => $('#restore-file').click());
+  $('#restore-file').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (f) restoreBackup(f);
+  });
   $('#title').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); e.stopPropagation(); });
   window.addEventListener('pagehide', () => flushProject(true));
   setupShell();
   setupSetlists();
-  refreshProjects().then(() => { if (!state.current) openDrawer('projects'); });
+  // per riaprire l'ultimo progetto servono anche i brani della libreria (le tracce puntano lì)
+  Promise.all([refreshProjects(), refreshSongs()]).then(() => {
+    if (state.current) return;
+    let last = null;
+    try { last = localStorage.getItem(LAST_PROJECT_KEY); } catch {}
+    if (last && state.projects.some((p) => p.id === last)) openProject(last).catch(() => openDrawer('projects'));
+    else openDrawer('projects');
+  });
 }
 
 // ------------------------------------------------- pannello laterale (a scomparsa)

@@ -80,9 +80,12 @@
     <section class="panel" data-panel="projects">
       <div class="panel-head">
         <h2>Progetti</h2>
+        <button id="project-restore" class="ghost icon-btn" title="Ripristina un progetto da un file di backup (.zip): i suoi brani entrano nella libreria" aria-label="Ripristina da backup">⤒</button>
         <button id="project-new" class="primary" title="Nuovo progetto">＋ Nuovo</button>
         <button class="drawer-close ghost" title="Chiudi (Esc)">✕</button>
+        <input id="restore-file" type="file" accept=".zip,application/zip" hidden>
       </div>
+      <div id="restore-progress" class="bar hidden" title="Ripristino del backup"><div></div></div>
       <ul id="projects" class="projects"></ul>
     </section>
 

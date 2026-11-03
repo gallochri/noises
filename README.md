@@ -8,7 +8,7 @@ Web app self-hosted in stile Moises: separazione delle tracce con l'AI, mixer mu
 cambio di tonalità e velocità indipendenti, accordi, trascrizione delle note, spartito, tablatura,
 click intelligente ed esportazione di basi.
 
-![Versione](https://img.shields.io/badge/versione-1.2.0-7c5cff)
+![Versione](https://img.shields.io/badge/versione-1.2.1-7c5cff)
 ![Licenza](https://img.shields.io/badge/licenza-MIT-2bd47d)
 ![Rust](https://img.shields.io/badge/backend-Rust%20%2B%20axum-orange)
 ![Docker](https://img.shields.io/badge/deploy-Docker%20Compose-2496ED)
@@ -41,6 +41,7 @@ click intelligente ed esportazione di basi.
 ### Libreria e progetti
 - **Libreria** dei brani (caricati dal computer o importati da **YouTube** e dagli altri siti supportati da yt-dlp, con avanzamento del download), con **playlist** e ricerca.
 - **Progetti**: timeline multitraccia salvate, separate dalla libreria. Trascini i brani nella timeline e li tieni interi o ne separi le tracce.
+- **Backup e ripristino** di un progetto così com'è: uno zip con un manifest, il progetto (tracce, clip, gruppi, segnalibri, sezioni, salvataggi) e tutti i suoi brani (audio originale, tracce separate, accordi, note e correzioni manuali). Ripristinato su un'altra installazione, i brani entrano nella libreria e il progetto si apre pronto.
 - **Scalette**: elenchi ordinati di progetti da suonare in sequenza, con pausa configurabile tra un brano e l'altro (o attesa del Play), avanzamento automatico e barra con posizione e brano successivo.
 - **Impostazioni salvate automaticamente** per progetto (tonalità, velocità, volumi, muto/solo, selezione, loop), con **Reimposta** per tornare all'originale, e **salvataggi** con un nome da richiamare e condividere.
 
@@ -72,7 +73,7 @@ click intelligente ed esportazione di basi.
 
 ### Spartito, ritmo e basi
 - **Spartito** (MusicXML generato con music21, visualizzato con OpenSheetMusicDisplay): pianoforte su doppio pentagramma, batteria in notazione percussiva, alterazioni secondo la tonalità. Stampa, PDF ed export MusicXML.
-- **Tablatura** per chitarra (anche Drop D) e basso a 4 o 5 corde, con corde e tasti scelti per limitare gli spostamenti della mano e gli accordi sopra le battute.
+- **Tablatura** per chitarra (anche Drop D e Drop C) e basso a 4 o 5 corde, con corde e tasti scelti per limitare gli spostamenti della mano e gli accordi sopra le battute.
 - **Cursore** che segue la riproduzione nello spartito e nella tablatura.
 - **Click** con tre modalità: **Adattivo** (segue ogni colpo della batteria registrata), **Tempo medio** (segue il tempo della canzone livellando le irregolarità), **Metronomo** (BPM fisso, regolabile). Sei suoni, volume, **spostamento fine a orecchio** (±5 ms per passo) e accento sul primo tempo.
 - **Metro** selezionabile (2/4, 3/4, 4/4, 5/4, 6/8, 12/8), spostamento del primo tempo, correzione del battito ×2/÷2.
@@ -174,6 +175,8 @@ Le modifiche che toccano solo la documentazione e il sito (`docs/`) non avviano 
 | Loop della selezione | `L` o ⟳ Loop |
 | Creare un loop durante l'ascolto | `I` (o **[ I**) fissa l'inizio alla testina (l'area verde cresce mentre suona), `O` (o **O ]**) la fine e attiva il loop (a loop attivo spostano subito inizio e fine) |
 | Salvataggi (es. *Assolo in loop*, *Solo voce*) | **💾 Salvataggi** → *Salva lo stato attuale*: tonalità, velocità, volumi, muto/solo, selezione e loop; un clic sul nome lo richiama e lo rende *in uso*: da lì le modifiche (loop, sezioni, volumi, velocità…) vengono salvate dentro quel salvataggio, e i suoi link pubblici si aggiornano. *Esci dal salvataggio* per lavorare senza toccarne nessuno |
+| Backup di un progetto | **Progetti** → ⤓ accanto al progetto: scarica `Nome.noises.zip` |
+| Ripristino (anche su un'altra installazione) | **Progetti** → ⤒ e scegli lo zip: i brani entrano nella libreria (quelli già presenti si riusano), il progetto si apre; se il nome esiste già diventa *Nome (2)* |
 | Link pubblico da condividere | **🔗 Condividi** (o 🔗 accanto a un salvataggio): pagina senza accesso che riproduce il mix con il suo loop; nella finestra si possono includere altri salvataggi da scegliere nella pagina; *Disattiva link* per revocarlo |
 | Salvare la selezione come sezione / richiamarla | **＋ Salva sezione** · **Sezioni ▾** |
 | Regolare inizio e fine del loop | trascina i bordi della selezione (`Ctrl`: aggancio al click) · ‹ › (0,1 s, `Shift`: 0,01 s) · « » (click precedente/successivo) |
@@ -283,6 +286,7 @@ Tutto sta nel volume Docker `noises-data` (`/data`):
 ├── setlists.json             # scalette
 ├── shares.json               # link pubblici
 ├── shares/*.mp3              # mix preparati per i link pubblici
+├── tmp/                      # file temporanei di backup e ripristino
 ├── projects/<id>.json        # progetti: tracce, clip, gruppi, segnalibri, impostazioni
 └── songs/<id>/
     ├── meta.json             # stato, proprietario, metro, regolazione del click
@@ -293,6 +297,19 @@ Tutto sta nel volume Docker `noises-data` (`/data`):
     ├── chords.json           # accordi rilevati  (+ chords.edited.json)
     └── notes.json            # note e griglia    (+ notes.edited/<traccia>.json)
 ```
+
+### Formato del backup
+
+Il backup di un progetto (`Nome.noises.zip`) contiene:
+
+```
+manifest.json             formato (noises-project-backup), versione, progetto, brani e loro file
+project.json              il progetto così com'è
+songs/<id>/meta.json      i brani usati dal progetto
+songs/<id>/…              input.*, original.flac, stems/*.flac, chords*.json, notes*.json, notes.edited/
+```
+
+La cache di tonalità e velocità (`render/`) non è inclusa: si ricrea da sola. Al ripristino brani e progetto mantengono i loro id se sono liberi e passano all'utente che ripristina.
 
 ## API
 
@@ -324,6 +341,8 @@ Tutte le API sotto `/api` (tranne `/api/auth/*`, `/api/public/*` e `/api/health`
 | `GET` `PUT` `DELETE` | `/api/projects/:id` | progetto: tracce, clip, gruppi, segnalibri |
 | `PUT` `DELETE` | `/api/projects/:id/settings` | impostazioni del mixer |
 | `POST` | `/api/projects/:id/export` | mix delle tracce attive, con click e pre-conteggio opzionali |
+| `GET` | `/api/projects/:id/backup` | backup completo del progetto e dei suoi brani (zip con `manifest.json`) |
+| `POST` | `/api/backup/restore` | ripristino da uno zip di backup (multipart, campo `file`, fino a 8 GB) |
 | `GET` `POST` | `/api/projects/:id/shares` | link pubblici del progetto: elenco, creazione o aggiornamento (`DELETE …/:token`) |
 | `GET` | `/api/public/:token` · `/api/public/:token/audio?mix=` | **senza accesso**: dati e audio di un link pubblico |
 | `GET` | `/s/:token` | **senza accesso**: pagina condivisa, con le anteprime per i social |

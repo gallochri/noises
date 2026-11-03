@@ -2090,7 +2090,7 @@ function startApp() {
   updateSelectionUI();
   setInterval(() => state.current && updateSaveUI(), 250);
   window.addEventListener('pagehide', () => state.current && flushAutosave(true));
-  refreshSongs();
+  // i brani li carica setupProjects (servono per riaprire l'ultimo progetto)
   requestAnimationFrame(tick);
 }
 

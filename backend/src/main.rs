@@ -6,6 +6,7 @@
 //!   * Rubber Band (C++) per pitch-shift e time-stretch di alta qualità
 
 mod auth;
+mod backup;
 mod projects;
 mod setlists;
 mod shares;
@@ -47,6 +48,8 @@ const CHORD_QUALITIES: &[&str] = &[
     "sus2", "sus4",
 ];
 const MAX_UPLOAD: usize = 1024 * 1024 * 1024;
+/// Backup di un progetto da ripristinare (audio originale e tracce separate di tutti i brani).
+const MAX_BACKUP: usize = 8 * 1024 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -2014,6 +2017,7 @@ async fn main() -> anyhow::Result<()> {
         tokio::spawn(download_task(st.clone(), id));
     }
     projects::migrate(&st);
+    backup::clean_tmp(&st.0.data_dir);
     tokio::spawn(worker(st.clone(), rx));
 
     let app = Router::new()
@@ -2049,6 +2053,11 @@ async fn main() -> anyhow::Result<()> {
             axum::routing::put(projects::put_settings).delete(projects::reset_settings),
         )
         .route("/api/projects/:pid/export", axum::routing::post(projects::export))
+        .route("/api/projects/:pid/backup", get(backup::download))
+        .route(
+            "/api/backup/restore",
+            post(backup::restore).layer(DefaultBodyLimit::max(MAX_BACKUP)),
+        )
         .route("/api/projects/:pid/shares", get(shares::list).post(shares::create))
         .route("/api/projects/:pid/shares/:token", axum::routing::delete(shares::delete))
         // link pubblici: senza accesso

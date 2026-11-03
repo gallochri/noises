@@ -6,6 +6,7 @@ const TUNINGS = {
   bass4: { label: 'Basso 4 corde (E A D G)', strings: [28, 33, 38, 43], frets: 20 },
   bass5: { label: 'Basso 5 corde (B E A D G)', strings: [23, 28, 33, 38, 43], frets: 20 },
   drop_d: { label: 'Chitarra Drop D (D A D G B E)', strings: [38, 45, 50, 55, 59, 64], frets: 22 },
+  drop_c: { label: 'Chitarra Drop C (C G C F A D)', strings: [36, 43, 48, 53, 57, 62], frets: 22 },
 };
 const sc = { stem: null, data: null, osmd: null, seq: 0, mode: 'score', stamps: null, idx: -1, tabBars: null, lastSys: -1 };
 

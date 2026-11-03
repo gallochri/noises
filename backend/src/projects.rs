@@ -131,7 +131,7 @@ pub(crate) fn get(st: &AppState, pid: &str) -> Result<Project, AppError> {
     st.0.projects.read().unwrap().get(pid).cloned().ok_or_else(not_found)
 }
 
-fn store(st: &AppState, mut p: Project) -> Result<Project, AppError> {
+pub(crate) fn store(st: &AppState, mut p: Project) -> Result<Project, AppError> {
     p.updated_at = now_secs();
     save_project(st, &p)?;
     st.0.projects.write().unwrap().insert(p.id.clone(), p.clone());

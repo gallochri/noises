@@ -646,8 +646,10 @@ button.wide { width: 100%; padding: 10px; }
 .projects li:hover { background: var(--panel-2); }
 .projects li.active { background: #7c5cff26; color: var(--accent-2); }
 .projects li.empty-hint { cursor: default; color: var(--muted); font-size: 12px; }
-.projects .ren, .projects .del { background: none; border: 0; padding: 0 4px; color: var(--muted); visibility: hidden; }
-.projects li:hover .ren, .projects li:hover .del { visibility: visible; }
+.projects .ren, .projects .del, .projects .bak { background: none; border: 0; padding: 0 4px; color: var(--muted); visibility: hidden; }
+.projects li:hover .ren, .projects li:hover .del, .projects li:hover .bak { visibility: visible; }
+.projects .bak:hover, .projects .ren:hover { color: var(--text); }
+#restore-progress { margin: 4px 0 8px; }
 .projects .del:hover { color: var(--danger); }
 #songs li.song-item { cursor: grab; }
 #songs li.song-item:active { cursor: grabbing; }
@@ -700,7 +702,8 @@ button.wide { width: 100%; padding: 10px; }
 #sidebar .panel.hidden { display: none; }
 .panel-head { display: flex; align-items: center; gap: 8px; }
 .panel-head h2 { margin: 0; font-size: 18px; flex: 1; }
-.panel-head .primary { padding: 5px 10px; font-size: 13px; }
+.panel-head .primary { padding: 5px 10px; font-size: 13px; white-space: nowrap; }
+.panel-head .icon-btn { padding: 4px 9px; font-size: 15px; }
 .drawer-close { padding: 2px 8px; }
 .drawer-hint { margin: 0; color: var(--muted); font-size: 12px; }
 .drawer-scrim { position: fixed; inset: 0; z-index: 39; background: #0006; opacity: 0; pointer-events: none; transition: opacity .2s; }
