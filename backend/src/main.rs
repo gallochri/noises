@@ -8,6 +8,7 @@
 mod auth;
 mod projects;
 mod setlists;
+mod shares;
 
 use std::{
     collections::{HashMap, VecDeque},
@@ -289,6 +290,8 @@ struct Inner {
     analysis_dir: PathBuf,
     playlists: RwLock<Vec<Playlist>>,
     setlists: RwLock<Vec<setlists::Setlist>>,
+    shares: RwLock<Vec<shares::Share>>,
+    static_dir: PathBuf,
     device: String,
     rubberband_args: Vec<String>,
     songs: RwLock<HashMap<String, Song>>,
@@ -1522,13 +1525,27 @@ struct MixInput {
     gain: f32,
 }
 
-/// Mixa le sorgenti con ffmpeg (clip, volumi, master, porzione, pre-conteggio, click).
+/// Mixa le sorgenti con ffmpeg e restituisce il contenuto del file (scaricato dal browser).
 async fn run_export(
     work_dir: &Path,
     items: Vec<MixInput>,
     req: &ExportRequest,
     label: &str,
 ) -> Result<Response, AppError> {
+    let (out, content_type) = mix_to_file(work_dir, items, req, label).await?;
+    let data = tokio::fs::read(&out).await;
+    let _ = tokio::fs::remove_file(&out).await;
+    Ok(([(axum::http::header::CONTENT_TYPE, content_type)], data?).into_response())
+}
+
+/// Mixa le sorgenti con ffmpeg (clip, volumi, master, porzione, pre-conteggio, click) in un
+/// file temporaneo dentro `work_dir`; restituisce il percorso e il tipo MIME.
+async fn mix_to_file(
+    work_dir: &Path,
+    items: Vec<MixInput>,
+    req: &ExportRequest,
+    label: &str,
+) -> Result<(PathBuf, &'static str), AppError> {
     let (ext, content_type, codec): (&str, &str, &[&str]) = match req.format.as_str() {
         "mp3" => ("mp3", "audio/mpeg", &["-c:a", "libmp3lame", "-b:a", "320k"]),
         "wav" => ("wav", "audio/wav", &["-c:a", "pcm_s16le"]),
@@ -1635,15 +1652,14 @@ async fn run_export(
         let _ = tokio::fs::remove_file(&out).await;
         return Err(anyhow!("ffmpeg fallito: {}", String::from_utf8_lossy(&output.stderr).trim()).into());
     }
-    let data = tokio::fs::read(&out).await?;
-    let _ = tokio::fs::remove_file(&out).await;
+    let size = tokio::fs::metadata(&out).await.map(|m| m.len()).unwrap_or(0);
     info!(
         "export '{label}': {} tracce, {ext}, {:.1} MB in {:.1}s",
         items.len(),
-        data.len() as f64 / 1048576.0,
+        size as f64 / 1048576.0,
         t0.elapsed().as_secs_f32()
     );
-    Ok(([(axum::http::header::CONTENT_TYPE, content_type)], data).into_response())
+    Ok((out, content_type))
 }
 
 async fn render(
@@ -1948,6 +1964,7 @@ async fn main() -> anyhow::Result<()> {
     let (tx, rx) = mpsc::unbounded_channel();
     let projects = projects::load_projects(&data_dir);
     let saved_setlists = setlists::load(&data_dir);
+    let saved_shares = shares::load(&data_dir);
     let st = AppState(Arc::new(Inner {
         auth: auth::Auth::open(&data_dir)?,
         projects: RwLock::new(projects),
@@ -1955,6 +1972,8 @@ async fn main() -> anyhow::Result<()> {
         analysis_dir: env("ANALYSIS_DIR", "/app/analysis").into(),
         playlists: RwLock::new(playlists),
         setlists: RwLock::new(saved_setlists),
+        shares: RwLock::new(saved_shares),
+        static_dir: static_dir.clone(),
         device: env("DEMUCS_DEVICE", "cpu"),
         rubberband_args: env("RUBBERBAND_ARGS", "")
             .split_whitespace()
@@ -2030,6 +2049,12 @@ async fn main() -> anyhow::Result<()> {
             axum::routing::put(projects::put_settings).delete(projects::reset_settings),
         )
         .route("/api/projects/:pid/export", axum::routing::post(projects::export))
+        .route("/api/projects/:pid/shares", get(shares::list).post(shares::create))
+        .route("/api/projects/:pid/shares/:token", axum::routing::delete(shares::delete))
+        // link pubblici: senza accesso
+        .route("/api/public/:token", get(shares::public_info))
+        .route("/api/public/:token/audio", get(shares::public_audio))
+        .route("/s/:token", get(shares::page))
         .route("/api/songs/:id/chords", get(get_chords).put(put_chords))
         .route("/api/songs/:id/chords/analyze", axum::routing::post(analyze_chords_now))
         .route("/api/songs/:id/notes/analyze", axum::routing::post(transcribe_now))

@@ -106,7 +106,7 @@ function renderSetlistDetail(sl) {
 }
 
 async function newSetlist() {
-  const name = (prompt('Nome della scaletta:', 'Nuova scaletta') || '').trim();
+  const name = (await uiPrompt('Nome della scaletta', T('Nuova scaletta'), { ok: 'Crea' }) || '').trim();
   if (!name) return;
   try {
     const sl = await api('/api/setlists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
@@ -114,7 +114,7 @@ async function newSetlist() {
     state.openSetlist = sl.id;
     renderSetlists();
   } catch (e) {
-    alert(`Creazione non riuscita: ${e.message}`);
+    uiAlert(`Creazione non riuscita: ${e.message}`);
   }
 }
 
@@ -252,11 +252,11 @@ function setupSetlists() {
   $('#sl-play').addEventListener('click', () => { const sl = setlistById(state.openSetlist); if (sl) startSetlist(sl, 0); });
   $('#sl-delete').addEventListener('click', async () => {
     const sl = setlistById(state.openSetlist);
-    if (!sl || !confirm(`Eliminare la scaletta "${sl.name}"?\nI progetti non vengono eliminati.`)) return;
+    if (!sl || !(await uiConfirm(`Eliminare la scaletta "${sl.name}"?\nI progetti non vengono eliminati.`, { title: 'Elimina scaletta', ok: 'Elimina', danger: true }))) return;
     try {
       await api(`/api/setlists/${sl.id}`, { method: 'DELETE' });
     } catch (e) {
-      alert(e.message);
+      uiAlert(e.message);
       return;
     }
     if (state.setlist && state.setlist.id === sl.id) stopSetlist();

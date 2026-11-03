@@ -5,19 +5,10 @@
 // alert/confirm/prompt e nei messaggi d'errore del server. Le frasi con parti variabili usano {…}.
 // Dove un testo diventa un dato (nomi predefiniti, etichette disegnate) si usa T() esplicitamente.
 
-const LANG = (() => {
-  try {
-    const saved = localStorage.getItem('noises.lang');
-    if (saved === 'it' || saved === 'en') return saved;
-  } catch {}
-  return /^it\b/i.test(navigator.language || '') ? 'it' : 'en';
-})();
+// La lingua è quella del browser: italiano se è l'italiano, altrimenti inglese.
+const LANG = /^it\b/i.test(navigator.language || '') ? 'it' : 'en';
 document.documentElement.lang = LANG;
-
-function setLang(lang) {
-  try { localStorage.setItem('noises.lang', lang); } catch {}
-  location.reload();
-}
+try { localStorage.removeItem('noises.lang'); } catch {} // scelta manuale delle versioni precedenti
 
 const EN = {
   // ---------------------------------------------------------------- generale
@@ -306,6 +297,79 @@ const EN = {
   'Riproduci la selezione (trascina sulla timeline per selezionare)': 'Play the selection (drag on the timeline to select)',
   '▶ Selezione': '▶ Selection',
   'Ripeti la selezione in loop (L)': 'Loop the selection (L)',
+  'Inizio del loop fissato: premi O per fissare la fine': 'Loop start set: press O to set the end',
+  "Premi prima I per fissare l'inizio del loop": 'Press I first to set the loop start',
+  "La fine del loop deve venire dopo l'inizio": 'The loop end must come after the start',
+  "Trascina per spostare l'inizio (Ctrl: aggancia al click)": 'Drag to move the start (Ctrl: snap to click)',
+  "Fissa l'inizio del loop alla posizione della testina (I)": 'Set the loop start at the playhead (I)',
+  'Fissa la fine del loop alla posizione della testina e attiva il loop (O)': 'Set the loop end at the playhead and turn the loop on (O)',
+  // finestre dell'interfaccia
+  'OK': 'OK',
+  'Crea': 'Create',
+  'Sostituisci': 'Replace',
+  'Ripristina': 'Restore',
+  'Ricalcola': 'Recompute',
+  'Disattiva': 'Turn off',
+  'Reimposta': 'Reset',
+  'Nome della nuova playlist': 'Name of the new playlist',
+  'Rinomina playlist': 'Rename playlist',
+  'Elimina playlist': 'Delete playlist',
+  'Elimina brano': 'Delete song',
+  'Nome della scaletta': 'Setlist name',
+  'Elimina scaletta': 'Delete setlist',
+  'Rinomina progetto': 'Rename project',
+  'Elimina progetto': 'Delete project',
+  'Nome del nuovo progetto': 'Name of the new project',
+  'Nome della sezione': 'Section name',
+  'Rinomina sezione': 'Rename section',
+  'Nome del salvataggio': 'Save name',
+  'Rinomina salvataggio': 'Rename save',
+  'Elimina salvataggio': 'Delete save',
+  // salvataggi e link pubblici
+  'Salvataggi': 'Saves',
+  'Salvataggio': 'Save',
+  'solo': 'solo',
+  'in muto': 'muted',
+  '🔗 Condividi': '🔗 Share',
+  'Salvataggi: stati del progetto con un nome da richiamare (loop, solo voce…)': 'Saves: named project states to recall (loop, vocals only…)',
+  'Crea un link pubblico per far ascoltare il salvataggio in uso': 'Create a public link to let others listen to the current save',
+  'Nome del salvataggio:': 'Save name:',
+  'Lo stato attuale è già salvato come "{…}"': 'The current state is already saved as "{…}"',
+  'Salvataggio "{…}" creato': 'Save "{…}" created',
+  'Salvataggio "{…}" creato: le modifiche ora vengono salvate qui': 'Save "{…}" created: changes are now saved into it',
+  'Le modifiche a loop, sezioni, volumi e velocità vengono salvate in "{…}"': 'Changes to loop, sections, volumes and speed are saved into "{…}"',
+  '＋ Nuovo salvataggio dallo stato attuale…': '＋ New save from the current state…',
+  'Esci dal salvataggio': 'Leave the save',
+  'Le modifiche successive non cambiano nessun salvataggio': 'Further changes will not modify any save',
+  'Salvataggio "{…}" aggiornato': 'Save "{…}" updated',
+  'Sostituire "{…}" con lo stato attuale?': 'Replace "{…}" with the current state?',
+  'Eliminare il salvataggio "{…}"?': 'Delete the save "{…}"?',
+  'Eliminare il salvataggio "{…}"?\n\nAnche il suo link pubblico smetterà di funzionare.': 'Delete the save "{…}"?\n\nIts public link will stop working too.',
+  'Richiama questo salvataggio': 'Recall this save',
+  'Link pubblico attivo: clic per copiarlo o gestirlo': 'Public link active: click to copy or manage it',
+  'Crea un link pubblico da condividere': 'Create a public link to share',
+  'Sostituisci con lo stato attuale': 'Replace with the current state',
+  'Nessun salvataggio: imposta volumi, muto/solo, velocità e loop, poi salva lo stato con un nome per richiamarlo in seguito.': 'No saves yet: set volumes, mute/solo, speed and loop, then save the state with a name to recall it later.',
+  '＋ Salva lo stato attuale…': '＋ Save the current state…',
+  "In uso il salvataggio \"{…}\": le modifiche vengono salvate qui. Clic per tornare all'inizio del suo loop, ▾ per l'elenco": 'Using the save "{…}": changes are saved into it. Click to go back to the start of its loop, ▾ for the list',
+  'Elenco dei salvataggi': 'List of saves',
+  'Nel salvataggio non ci sono tracce udibili da condividere': 'The save has no audible tracks to share',
+  'Link pubblico aggiornato': 'Public link updated',
+  'Condivisione non riuscita: {…}': 'Sharing failed: {…}',
+  'Link pubblico disattivato': 'Public link turned off',
+  'Operazione non riuscita: {…}': 'Operation failed: {…}',
+  'Link copiato': 'Link copied',
+  'Altri salvataggi da poter scegliere nella pagina': 'Other saves listeners can pick on the page',
+  'Nessuna traccia udibile': 'No audible tracks',
+  'Link pubblico': 'Public link',
+  'Chiunque abbia il link può ascoltare questo salvataggio (mix, tonalità, velocità e loop), senza accedere a Noises. Le tracce originali non vengono condivise.': 'Anyone with the link can listen to this save (mix, key, speed and loop) without signing in to Noises. The original tracks are not shared.',
+  'Copia': 'Copy',
+  'Altro…': 'More…',
+  'Disattiva link': 'Turn off link',
+  'Apri la pagina': 'Open the page',
+  'Disattivare il link? Chi lo apre non potrà più ascoltare questo salvataggio.': 'Turn off the link? People opening it will no longer be able to listen to this save.',
+  "Mostra nella timeline le linee delle battute secondo il tempo del click (serve l'analisi del ritmo)": 'Show bar lines in the timeline following the click tempo (needs the rhythm analysis)',
+  'Trascina per spostare la fine (Ctrl: aggancia al click)': 'Drag to move the end (Ctrl: snap to click)',
   '⟳ Loop': '⟳ Loop',
   'Annulla selezione (Esc)': 'Clear selection (Esc)',
   'Regolazione fine del loop: ‹ › = 0,1 s (Shift: 0,01 s, tieni premuto per scorrere) · « » = click precedente/successivo':
@@ -631,7 +695,6 @@ const EN = {
   'Creazione non riuscita: {…}': 'Creation failed: {…}',
 
   // ---------------------------------------------------------------- lingua
-  '🌐 English': '🌐 Italiano',
 
   // ---------------------------------------------------------------- messaggi del server
   'Password aggiornata.': 'Password updated.',
@@ -771,17 +834,8 @@ function translateNode(node) {
     return origFetch(input, init);
   };
 }
-document.addEventListener('click', (e) => {
-  if (e.target.closest('.lang-btn')) setLang(LANG === 'it' ? 'en' : 'it');
-});
 
 if (LANG === 'en') {
-  for (const name of ['alert', 'confirm']) {
-    const orig = window[name].bind(window);
-    window[name] = (msg) => orig(tr(String(msg ?? '')));
-  }
-  const origPrompt = window.prompt.bind(window);
-  window.prompt = (msg, def) => origPrompt(tr(String(msg ?? '')), def == null ? def : tr(String(def)));
   const start = () => {
     document.title = tr(document.title);
     translateNode(document.body);

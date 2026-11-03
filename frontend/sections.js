@@ -13,18 +13,19 @@ function regionOfSelection() {
   return state.regions.find((r) => Math.abs(r.start * k - s.start) < 0.02 && Math.abs(Math.min(r.end * k, engine.duration) - s.end) < 0.02) || null;
 }
 
-function askRegionName(def) {
-  const name = (prompt('Nome della sezione:', def) || '').trim().slice(0, 60);
+async function askRegionName(def, title = 'Nome della sezione') {
+  const name = (await uiPrompt(title, def, { ok: 'Salva', max: 60 }) || '').trim().slice(0, 60);
   return name || null;
 }
 
-function saveSelectionAsRegion() {
-  const s = state.sel;
-  if (!s || !state.current) return;
+async function saveSelectionAsRegion() {
+  const s0 = state.sel;
+  if (!s0 || !state.current) return;
   const cur = regionOfSelection();
   if (cur) { renameRegion(cur); return; }
-  const name = askRegionName(`${T('Sezione')} ${state.regions.length + 1}`);
-  if (!name) return;
+  const name = await askRegionName(`${T('Sezione')} ${state.regions.length + 1}`);
+  const s = state.sel;
+  if (!name || !s) return;
   pushUndo('Salva sezione');
   const k = rk();
   state.regions.push({ id: newRegionId(), name, start: +(s.start / k).toFixed(3), end: +(s.end / k).toFixed(3) });
@@ -33,8 +34,8 @@ function saveSelectionAsRegion() {
   toast(`Sezione "${name}" salvata`);
 }
 
-function renameRegion(r) {
-  const name = askRegionName(r.name);
+async function renameRegion(r) {
+  const name = await askRegionName(r.name, 'Rinomina sezione');
   if (!name || name === r.name) return;
   pushUndo('Rinomina sezione');
   r.name = name;
@@ -136,6 +137,16 @@ function beatNeighbor(x, dir) {
   const bp = beatPos((x - n) / k - a);
   const b = dir > 0 ? Math.floor(bp + 1e-4) + 1 : Math.ceil(bp - 1e-4) - 1;
   return (beatTime(b) + a) * k + n;
+}
+
+/** Posizione (timeline) del click più vicino a x; senza griglia del ritmo restituisce x. */
+function nearestBeat(x) {
+  if (!(typeof hasGrid === 'function' && hasGrid())) return x;
+  const n = clickNudge();
+  const near = clickTimes(Math.max(0, x - n - 4), x - n + 4);
+  let best = x, d = Infinity;
+  for (const b of near) if (Math.abs(b.t + n - x) < d) { d = Math.abs(b.t + n - x); best = b.t + n; }
+  return best;
 }
 
 /** mode: 'step' (0,1 s), 'fine' (0,01 s) o 'beat' (click precedente/successivo). */

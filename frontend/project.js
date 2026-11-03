@@ -110,21 +110,21 @@ function renderProjects() {
     li.addEventListener('click', () => openProject(p.id));
     li.querySelector('.ren').addEventListener('click', async (e) => {
       e.stopPropagation();
-      const name = (prompt('Nuovo nome del progetto:', p.name) || '').trim();
+      const name = (await uiPrompt('Rinomina progetto', p.name, { ok: 'Rinomina' }) || '').trim();
       if (!name || name === p.name) return;
-      if (state.current && state.current.id === p.id) { state.current.name = name; $('#title').value = name; saveProject(); }
+      if (state.current && state.current.id === p.id) { state.current.name = name; $('#title').value = name; fitTitle(); saveProject(); }
       else {
         const full = await api(`/api/projects/${p.id}`);
         await api(`/api/projects/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, tracks: full.tracks, groups: full.groups, markers: full.markers }) });
+          body: JSON.stringify({ name, tracks: full.tracks, groups: full.groups, markers: full.markers, regions: full.regions || [] }) });
       }
       p.name = name;
       renderProjects();
     });
     li.querySelector('.del').addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (!confirm(`Eliminare il progetto "${p.name}"?\nI brani restano nella libreria.`)) return;
-      await api(`/api/projects/${p.id}`, { method: 'DELETE' }).catch((err) => alert(err.message));
+      if (!(await uiConfirm(`Eliminare il progetto "${p.name}"?\nI brani restano nella libreria.`, { title: 'Elimina progetto', ok: 'Elimina', danger: true }))) return;
+      await api(`/api/projects/${p.id}`, { method: 'DELETE' }).catch((err) => uiAlert(err.message));
       if (state.current && state.current.id === p.id) closePlayer();
       await refreshProjects();
       refreshSetlists(); // il progetto sparisce anche dalle scalette
@@ -134,7 +134,7 @@ function renderProjects() {
 }
 
 async function createProject(name) {
-  name = (name ?? prompt('Nome del nuovo progetto:', 'Nuovo progetto') ?? '').trim();
+  name = (name ?? await uiPrompt('Nome del nuovo progetto', T('Nuovo progetto'), { ok: 'Crea' }) ?? '').trim();
   if (!name) return null;
   const p = await api('/api/projects', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),
@@ -148,7 +148,12 @@ async function createProject(name) {
 async function openProject(id) {
   if (state.current && state.current.id === id) return;
   const seq = ++projectSeq;
-  if (state.current) { flushAutosave(); flushProject(); }
+  if (state.current) {
+    if (typeof syncPresetNow === 'function' && syncPresetNow()) saveProject();
+    if (typeof flushPresetShares === 'function') flushPresetShares();
+    flushAutosave();
+    flushProject();
+  }
   const p = await api(`/api/projects/${id}`);
   if (seq !== projectSeq) return;
   state.ab = 'custom';
@@ -175,10 +180,16 @@ async function openProject(id) {
   $('#empty').classList.add('hidden');
   $('#player').classList.remove('hidden');
   $('#title').value = p.name;
+  fitTitle();
   $('#chord-song').textContent = '';
   initLayout(p);
   state.markers = (p.markers || []).map((m) => ({ ...m }));
   state.regions = (p.regions || []).map((r) => ({ ...r }));
+  state.presets = (p.presets || []).map((x) => ({ ...x }));
+  state.presetId = null;
+  try { state.presetRestore = localStorage.getItem(presetStoreKey(p.id)); } catch { state.presetRestore = null; }
+  presetsUiKey = '';
+  loadShares();
   closeMarkerMenu();
   closeRegionsMenu();
   renderProjects();
@@ -251,8 +262,21 @@ async function loadProjectTracks(p) {
   } catch (e) {
     if (seq !== state.loadSeq) return;
     setLoader(null);
-    alert(`Errore nel caricamento delle tracce: ${e.message}`);
+    uiAlert(`Errore nel caricamento delle tracce: ${e.message}`);
   }
+}
+
+/** Il campo del nome del progetto è largo quanto il testo (più lo spazio per scrivere). */
+let titleCanvas = null;
+function fitTitle() {
+  const el = $('#title');
+  if (!el) return;
+  titleCanvas = titleCanvas || document.createElement('canvas').getContext('2d');
+  const cs = getComputedStyle(el);
+  titleCanvas.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const text = el.value || el.placeholder || '';
+  const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+  el.style.width = `${Math.ceil(titleCanvas.measureText(text).width + pad + 4)}px`;
 }
 
 // ----------------------------------------------------------------- salvataggio
@@ -264,7 +288,18 @@ function projectState() {
     groups: deep(state.groups),
     markers: state.markers || [],
     regions: state.regions || [],
+    presets: (typeof syncPresetNow === 'function' && syncPresetNow(), state.presets || []),
   };
+}
+
+/** Salva subito il progetto e attende la conferma del server. */
+async function saveProjectNow() {
+  const p = state.current;
+  if (!p || state.pending) return;
+  clearTimeout(projectSaveTimer);
+  projectSaveTimer = null;
+  cleanGroups();
+  await api(`/api/projects/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(projectState()) });
 }
 
 function saveProject() {
@@ -330,7 +365,7 @@ async function addSongToProject(songId, startDisplay) {
     saveProject();
     scrollTrackIntoView(t);
   } catch (e) {
-    alert(`Impossibile aggiungere "${song.name}": ${e.message}`);
+    uiAlert(`Impossibile aggiungere "${song.name}": ${e.message}`);
   } finally {
     setLoader(null);
   }
@@ -384,7 +419,7 @@ async function replaceWithStems(t) {
     saveProject();
     toast(`"${song.name}" separato in ${created.length} tracce (raggruppate) — Ctrl+Z per annullare`);
   } catch (e) {
-    alert(`Separazione non riuscita: ${e.message}`);
+    uiAlert(`Separazione non riuscita: ${e.message}`);
   } finally {
     setLoader(null);
   }
@@ -422,7 +457,7 @@ async function duplicateTrack(t) {
     saveProject();
     buildTracks();
   } catch (e) {
-    alert(`Duplicazione non riuscita: ${e.message}`);
+    uiAlert(`Duplicazione non riuscita: ${e.message}`);
   } finally {
     setLoader(null);
   }
@@ -462,8 +497,10 @@ function setupProjects() {
     if (!state.current) return;
     state.current.name = $('#title').value.trim() || state.current.name;
     $('#title').value = state.current.name;
+    fitTitle();
     saveProject();
   });
+  $('#title').addEventListener('input', fitTitle);
   $('#title').addEventListener('keydown', (e) => { if (e.key === 'Enter') e.target.blur(); e.stopPropagation(); });
   window.addEventListener('pagehide', () => flushProject(true));
   setupShell();
@@ -558,7 +595,7 @@ function setupShell() {
       const row = $('#pending-imports');
       if (row) row.scrollIntoView({ block: 'nearest' });
     } catch (e) {
-      alert(`Import fallito: ${e.message}`);
+      uiAlert(`Import fallito: ${e.message}`);
     }
   });
 }

@@ -6,7 +6,8 @@ const LABELS = { vocals: T('Voce'), drums: T('Batteria'), bass: T('Basso'), guit
 const MODEL_LABELS = { htdemucs: T('4 tracce'), htdemucs_ft: T('4 tracce HQ'), htdemucs_6s: T('6 tracce') };
 
 const state = { zoom: 40, follow: true, notes: null, showNotes: new Set(), synth: new Set(), selNote: null,
-  songs: [], playlists: [], view: 'all', query: '', current: null, pitch: 0, tempo: 100, loadSeq: 0, debounce: null, sel: null, loopOn: false };
+  songs: [], playlists: [], view: 'all', query: '', current: null, pitch: 0, tempo: 100, loadSeq: 0, debounce: null, sel: null, loopOn: false,
+  loopIn: null }; // loopIn: inizio del loop fissato con I, in attesa della fine (O)
 
 const fmt = (t) => {
   t = Math.max(0, t);
@@ -365,9 +366,9 @@ function renderSongs() {
     });
     li.querySelector('.del').addEventListener('click', async (ev) => {
       ev.stopPropagation();
-      if (!confirm(`Eliminare definitivamente "${s.name}" dalla libreria?${inPl ? '\nVerrà rimosso anche dalle playlist.' : ''}\nLe sue tracce verranno tolte dai progetti che lo usano.`)) return;
+      if (!(await uiConfirm(`Eliminare definitivamente "${s.name}" dalla libreria?${inPl ? '\nVerrà rimosso anche dalle playlist.' : ''}\nLe sue tracce verranno tolte dai progetti che lo usano.`, { title: 'Elimina brano', ok: 'Elimina', danger: true }))) return;
       const usedHere = state.current && engine.tracks.some((t) => t.song === s.id);
-      await api(`/api/songs/${s.id}`, { method: 'DELETE' }).catch((e) => alert(e.message));
+      await api(`/api/songs/${s.id}`, { method: 'DELETE' }).catch((e) => uiAlert(e.message));
       await refreshPlaylists();
       await refreshSongs();
       refreshProjects();
@@ -432,7 +433,7 @@ function renderPlaylists() {
 }
 
 async function createPlaylist(name) {
-  name = (name ?? prompt('Nome della nuova playlist:') ?? '').trim();
+  name = (name ?? await uiPrompt('Nome della nuova playlist', '', { ok: 'Crea' }) ?? '').trim();
   if (!name) return null;
   try {
     const pl = await api('/api/playlists', {
@@ -441,25 +442,25 @@ async function createPlaylist(name) {
     await refreshPlaylists();
     return pl;
   } catch (e) {
-    alert(e.message);
+    uiAlert(e.message);
     return null;
   }
 }
 
 async function renamePlaylist(id) {
   const pl = state.playlists.find((p) => p.id === id);
-  const name = (prompt('Nuovo nome della playlist:', pl.name) || '').trim();
+  const name = (await uiPrompt('Rinomina playlist', pl.name, { ok: 'Rinomina' }) || '').trim();
   if (!name || name === pl.name) return;
   await api(`/api/playlists/${id}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),
-  }).catch((e) => alert(e.message));
+  }).catch((e) => uiAlert(e.message));
   refreshPlaylists();
 }
 
 async function deletePlaylist(id) {
   const pl = state.playlists.find((p) => p.id === id);
-  if (!confirm(`Eliminare la playlist "${pl.name}"?\nI brani restano nella libreria.`)) return;
-  await api(`/api/playlists/${id}`, { method: 'DELETE' }).catch((e) => alert(e.message));
+  if (!(await uiConfirm(`Eliminare la playlist "${pl.name}"?\nI brani restano nella libreria.`, { title: 'Elimina playlist', ok: 'Elimina', danger: true }))) return;
+  await api(`/api/playlists/${id}`, { method: 'DELETE' }).catch((e) => uiAlert(e.message));
   refreshPlaylists();
 }
 
@@ -467,7 +468,7 @@ async function setMembership(plId, songId, on) {
   try {
     await api(`/api/playlists/${plId}/songs/${songId}`, { method: on ? 'PUT' : 'DELETE' });
   } catch (e) {
-    alert(e.message);
+    uiAlert(e.message);
   }
   await refreshPlaylists();
 }
@@ -548,7 +549,7 @@ async function startProcess() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
     } catch (e) {
-      alert(`"${s.name}": ${e.message}`);
+      uiAlert(`"${s.name}": ${e.message}`);
     }
   }
   processTargets = [];
@@ -604,7 +605,7 @@ async function uploadFiles(files) {
       await addToCurrentPlaylist(song);
       refreshSongs();
     } catch (e) {
-      alert(`Caricamento di "${f.name}" fallito: ${e.message}`);
+      uiAlert(`Caricamento di "${f.name}" fallito: ${e.message}`);
     }
   }
 }
@@ -624,7 +625,7 @@ function setupImport() {
       await addToCurrentPlaylist(song);
       refreshSongs();
     } catch (err) {
-      alert(`Import fallito: ${err.message}`);
+      uiAlert(`Import fallito: ${err.message}`);
     } finally {
       btn.disabled = false;
     }
@@ -782,6 +783,8 @@ function setupControls() {
     else if (e.code === 'ArrowRight') engine.seek(engine.position() + 5);
     else if (e.code === 'Home') { e.preventDefault(); goToStart(); }
     else if (e.code === 'KeyL') toggleLoop();
+    else if (e.code === 'KeyI' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); setLoopIn(); }
+    else if (e.code === 'KeyO' && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); setLoopOut(); }
     else if (e.code === 'KeyM') { e.preventDefault(); addMarker(); }
     else if (e.code === 'Comma') prevMarker();
     else if (e.code === 'Period') nextMarker();
@@ -789,6 +792,8 @@ function setupControls() {
   });
 
   $('#loop').addEventListener('click', toggleLoop);
+  $('#loop-in').addEventListener('click', setLoopIn);
+  $('#loop-out').addEventListener('click', setLoopOut);
   $('#play-sel').addEventListener('click', playSelection);
   $('#sel-clear').addEventListener('click', () => setSelection(null));
   $('#export').addEventListener('click', () => openExport());
@@ -984,6 +989,13 @@ function setupZoom() {
   let z = 40;
   try { z = Number(localStorage.getItem('noises.zoom')) || 40; } catch {}
   try { state.follow = localStorage.getItem('noises.follow') !== '0'; } catch {}
+  try { state.barLines = localStorage.getItem('noises.barLines') === '1'; } catch {}
+  $('#bar-lines').checked = !!state.barLines;
+  $('#bar-lines').addEventListener('change', (e) => {
+    state.barLines = e.target.checked;
+    try { localStorage.setItem('noises.barLines', state.barLines ? '1' : '0'); } catch {}
+    drawAll();
+  });
   $('#follow').checked = state.follow;
   $('#follow').addEventListener('change', (e) => {
     state.follow = e.target.checked;
@@ -1057,12 +1069,12 @@ function positionOverview() {
   const w = Math.max(10, (viewWidth() / cw) * W);
   win.style.width = `${w}px`;
   win.style.left = `${headWidth() + Math.min(W - w, (tl.scrollLeft / cw) * W)}px`;
-  const sel = state.sel, ovSel = $('#ov-sel');
+  const sel = shownSel(), ovSel = $('#ov-sel');
   ovSel.classList.toggle('hidden', !sel);
   if (sel) {
     ovSel.style.left = `${headWidth() + (sel.start / engine.duration) * W}px`;
     ovSel.style.width = `${Math.max(2, ((sel.end - sel.start) / engine.duration) * W)}px`;
-    ovSel.classList.toggle('loop', state.loopOn);
+    ovSel.classList.toggle('loop', state.loopOn || state.loopIn != null);
   }
 }
 
@@ -1190,6 +1202,7 @@ function setupTimeline() {
 
 function setSelection(sel) {
   state.sel = sel;
+  state.loopIn = null;
   engine.stopAt = null;
   if (!sel) state.loopOn = false;
   engine.setLoop(state.loopOn && sel ? { ...sel } : null);
@@ -1203,6 +1216,85 @@ function toggleLoop() {
   engine.setLoop(state.loopOn ? { ...state.sel } : null);
   if (state.loopOn && !engine.playing) engine.seek(state.sel.start);
   updateSelectionUI();
+}
+
+const LOOP_MIN = 0.2;
+
+/** I: fissa l'inizio del loop dove si trova la testina (con il loop attivo lo sposta subito). */
+function setLoopIn() {
+  if (!engine.tracks.length) return;
+  const t = engine.position();
+  const s = state.sel;
+  if (state.loopOn && s && t < s.end - LOOP_MIN) { setSelection({ start: t, end: s.end }); return; }
+  state.loopIn = t;
+  positionSelection();
+  positionOverview();
+  toast('Inizio del loop fissato: premi O per fissare la fine');
+}
+
+/** O: fissa la fine del loop alla testina e lo attiva (l'ascolto riparte dall'inizio del loop). */
+function setLoopOut() {
+  if (!engine.tracks.length) return;
+  const t = engine.position();
+  const start = state.loopIn ?? (state.loopOn && state.sel ? state.sel.start : null);
+  if (start === null) { toast("Premi prima I per fissare l'inizio del loop"); return; }
+  if (t - start < LOOP_MIN) { toast("La fine del loop deve venire dopo l'inizio"); return; }
+  state.loopOn = true;
+  setSelection({ start, end: t });
+  if (!engine.playing) engine.seek(start);
+}
+
+/** Maniglie ai bordi della selezione: trascinandole si spostano inizio e fine (anche del loop). */
+function setupSelectionHandles() {
+  const el = $('#selection');
+  for (const edge of ['start', 'end']) {
+    const h = document.createElement('div');
+    h.className = `sel-h ${edge === 'start' ? 'l' : 'r'}`;
+    h.title = edge === 'start' ? 'Trascina per spostare l\'inizio (Ctrl: aggancia al click)' : 'Trascina per spostare la fine (Ctrl: aggancia al click)';
+    el.appendChild(h);
+    let drag = null;
+    h.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || !state.sel || state.loopIn != null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const reg = regionOfSelection();
+      if (reg) pushUndo('Regola sezione');
+      drag = { reg, dx: timeAt(e.clientX) - state.sel[edge] };
+      h.setPointerCapture(e.pointerId);
+      el.classList.add('dragging');
+    });
+    h.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const s = state.sel, MIN = 0.05;
+      let t = timeAt(e.clientX) - drag.dx;
+      if (e.ctrlKey || e.metaKey) t = nearestBeat(t); // Ctrl: aggancio al click più vicino
+      const next = { ...s };
+      if (edge === 'start') next.start = Math.max(0, Math.min(s.end - MIN, t));
+      else next.end = Math.min(engine.duration, Math.max(s.start + MIN, t));
+      state.sel = next;
+      engine.stopAt = null;
+      if (state.loopOn) engine.setLoop({ ...next }); // il loop segue senza interruzioni
+      if (drag.reg) {
+        const k = rk();
+        drag.reg.start = +(next.start / k).toFixed(3);
+        drag.reg.end = +(next.end / k).toFixed(3);
+      }
+      updateSelectionUI();
+    });
+    const end = () => {
+      if (!drag) return;
+      const { reg } = drag;
+      drag = null;
+      el.classList.remove('dragging');
+      const s = state.sel;
+      if (s && !engine.playing && edge === 'start') engine.seek(s.start);
+      else if (s && engine.playing && state.loopOn && (engine.position() < s.start || engine.position() > s.end)) engine.seek(s.start);
+      if (reg) saveProject();
+      if (!$('#regions-menu').classList.contains('hidden')) renderRegionsMenu();
+    };
+    h.addEventListener('pointerup', end);
+    h.addEventListener('pointercancel', end);
+  }
 }
 
 function playSelection() {
@@ -1226,14 +1318,25 @@ function updateSelectionUI() {
     ? `${fmtPrecise(sel.start)} – ${fmtPrecise(sel.end)} (${(sel.end - sel.start).toFixed(1)} s)`
     : '';
   updateRegionsUI(reg);
+  if (typeof updatePresetsUI === 'function') updatePresetsUI();
   $('#selection').classList.toggle('loop', state.loopOn);
   positionSelection();
   positionOverview();
 }
 
+/** Porzione da disegnare: con l'inizio fissato (I) va dall'inizio alla testina, altrimenti la selezione. */
+function shownSel() {
+  if (state.loopIn == null) return state.sel;
+  const p = engine.position();
+  return { start: Math.min(state.loopIn, p), end: Math.max(state.loopIn, p) };
+}
+
 function positionSelection() {
-  const el = $('#selection'), sel = state.sel;
+  const el = $('#selection'), sel = shownSel();
   el.classList.toggle('hidden', !sel || !engine.duration);
+  el.classList.toggle('pending', state.loopIn != null);
+  $('#loop-in').classList.toggle('on', state.loopIn != null);
+  el.classList.toggle('loop', state.loopOn || state.loopIn != null);
   if (!sel || !engine.duration) return;
   el.style.left = `${headWidth() + sel.start * state.zoom}px`;
   el.style.width = `${Math.max(2, (sel.end - sel.start) * state.zoom)}px`;
@@ -1315,6 +1418,7 @@ function flushAutosave(keepalive = false) {
 
 function updateSaveUI() {
   if (!state.current) return;
+  if (typeof updatePresetsUI === 'function') updatePresetsUI();
   const custom = state.ab === 'custom';
   if (custom && !state.pending && engine.tracks.length && isDirty()) scheduleAutosave();
   const isDefault = JSON.stringify(currentSettings()) === JSON.stringify(normalizeSettings({}));
@@ -1347,7 +1451,7 @@ async function saveSettings() {
 
 async function resetSettings() {
   const song = state.current;
-  if (!song || !confirm('Reimpostare il progetto ai valori originali?\n\nSi perdono tonalità, velocità, volumi, muto/solo, master, selezione e loop.\nTracce, clip e segnalibri restano come sono.')) return;
+  if (!song || !(await uiConfirm('Reimpostare il progetto ai valori originali?\n\nSi perdono tonalità, velocità, volumi, muto/solo, master, selezione e loop.\nTracce, clip e segnalibri restano come sono.', { title: 'Reimposta', ok: 'Reimposta', danger: true }))) return;
   clearTimeout(autosaveTimer);
   autosaveTimer = null;
   state.ab = 'custom';
@@ -1364,7 +1468,7 @@ async function resetSettings() {
     if (song.settings) await api(`/api/projects/${song.id}/settings`, { method: 'DELETE' });
     if (state.current === song) storeSongSettings(null);
   } catch (e) {
-    alert(`Reset fallito: ${e.message}`);
+    uiAlert(`Reset fallito: ${e.message}`);
   }
   updateSaveUI();
 }
@@ -1460,7 +1564,7 @@ async function doExport() {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   } catch (e) {
-    alert(`Esportazione fallita: ${e.message}`);
+    uiAlert(`Esportazione fallita: ${e.message}`);
   } finally {
     setLoader(null);
   }
@@ -1561,6 +1665,25 @@ function drawRuler() {
   }
 }
 
+/** Linee delle battute (e dei battiti, se c'è spazio) sullo sfondo di una corsia: seguono il click
+ *  (battiti rilevati, stretti o BPM fisso, metro scelto e spostamento fine). */
+function drawBarLines(ctx, w, h, dpr) {
+  if (!state.barLines || !engine.duration || !(typeof hasGrid === 'function' && hasGrid())) return;
+  const sl = tlEl().scrollLeft, z = state.zoom, n = clickNudge();
+  const t0 = sl / z, t1 = (sl + w / dpr) / z;
+  const beats = clickTimes(Math.max(0, t0 - n - 1), t1 - n + 1);
+  if (beats.length > 3000) return; // troppo fitte per essere utili
+  const bars = beats.filter((b) => b.accent);
+  const barPx = bars.length > 1 ? (bars[1].t - bars[0].t) * z : Infinity;
+  if (barPx < 5) return;
+  const showBeats = beats.length > 1 && (beats[1].t - beats[0].t) * z >= 18;
+  for (const b of beats) {
+    if (!b.accent && !showBeats) continue;
+    ctx.fillStyle = b.accent ? '#a48bff4d' : '#ffffff0f';
+    ctx.fillRect(Math.round(((b.t + n) * z - sl) * dpr), 0, dpr, h);
+  }
+}
+
 function drawAll() {
   if (!state.current || !engine.tracks.length) return;
   drawRuler();
@@ -1588,6 +1711,7 @@ function tick() {
     $('#dur').textContent = fmt(engine.duration);
     $('#play').textContent = engine.playing ? '❚❚' : '▶';
     $('#playhead').style.left = `${headWidth() + pos * state.zoom}px`;
+    if (state.loopIn != null) { positionSelection(); positionOverview(); } // area verde che cresce con la testina
     // segue la testina: quando esce dall'area visibile, "gira pagina"
     if (engine.playing && state.follow) {
       const tl = tlEl();
@@ -1708,7 +1832,7 @@ async function recomputeChords(t) {
   const song = songById(t.song);
   if (!song) return;
   if (state.refSong && state.refSong.id === song.id && state.chords && state.chords.edited
-    && !confirm('Le correzioni fatte a mano agli accordi andranno perse. Ricalcolare?')) return;
+    && !(await uiConfirm('Le correzioni fatte a mano agli accordi andranno perse. Ricalcolare?', { ok: 'Ricalcola', danger: true }))) return;
   if (state.refTrack !== t.name) setReference(t);
   chordSeq++; // annulla un eventuale caricamento avviato da setReference
   await runChordAnalysis(song, true);
@@ -1787,7 +1911,7 @@ function saveChords() {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chords: sheet.chords }),
       });
     } catch (e) {
-      alert(`Salvataggio accordi fallito: ${e.message}`);
+      uiAlert(`Salvataggio accordi fallito: ${e.message}`);
     }
   }, 400);
 }
@@ -1883,14 +2007,14 @@ function setupChords() {
   });
   $('#chord-restore').addEventListener('click', async () => {
     const song = state.refSong;
-    if (!confirm('Eliminare le correzioni e tornare agli accordi rilevati automaticamente?')) return;
+    if (!(await uiConfirm('Eliminare le correzioni e tornare agli accordi rilevati automaticamente?', { ok: 'Ripristina', danger: true }))) return;
     clearTimeout(chordSave);
     closeChordMenu();
     try {
       const sheet = await api(`/api/songs/${song.id}/chords/edits`, { method: 'DELETE' });
       if (state.refSong === song) setChords(sheet);
     } catch (e) {
-      alert(e.message);
+      uiAlert(e.message);
     }
   });
 
@@ -1952,6 +2076,7 @@ function startApp() {
   refreshPlaylists();
   setupControls();
   setupTimeline();
+  setupSelectionHandles();
   setupZoom();
   setupNotes();
   setupScore();
@@ -1959,6 +2084,7 @@ function startApp() {
   setupUserTracks();
   setupRecorder();
   setupSections();
+  setupPresets();
   setupEditor();
   setupProjects();
   updateSelectionUI();

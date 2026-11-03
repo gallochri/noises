@@ -442,7 +442,7 @@ fn with_session(st: &AppState, user: &User, mut resp: Response) -> Result<Respon
 /// Protegge le API: richiede una sessione valida e verifica che le risorse appartengano all'utente.
 pub async fn require_user(State(st): State<AppState>, mut req: Request, next: Next) -> Response {
     let path = req.uri().path().to_owned();
-    if !path.starts_with("/api/") || path.starts_with("/api/auth/") || path == "/api/health" {
+    if !path.starts_with("/api/") || path.starts_with("/api/auth/") || path.starts_with("/api/public/") || path == "/api/health" {
         return next.run(req).await;
     }
     let Some(user) = current_user(&st, req.headers()) else {

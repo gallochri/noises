@@ -497,6 +497,7 @@ function srcLength(t) {
 /** Traccia a clip: sfondo e contorno per clip, forma d'onda della parte di file usata. */
 function drawClipTrack(t) {
   const [ctx, w, h, dpr] = fitCanvas(t.canvas);
+  drawBarLines(ctx, w, h, dpr);
   const sl = tlEl().scrollLeft, z = state.zoom, k = ek();
   const bps = engine.sr / PEAK_BLOCK;
   const mid = h / 2;
@@ -707,6 +708,7 @@ function drawFolder(g) {
   if (!g._canvas || !g._canvas.isConnected) return;
   const kids = folderKids(g);
   const [ctx, w, h, dpr] = fitCanvas(g._canvas);
+  drawBarLines(ctx, w, h, dpr);
   const sl = tlEl().scrollLeft, z = state.zoom, k = ek();
   const bps = engine.sr / PEAK_BLOCK, mid = h / 2;
   const rep = kids[0];

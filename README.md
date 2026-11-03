@@ -42,7 +42,7 @@ click intelligente ed esportazione di basi.
 - **Libreria** dei brani (caricati dal computer o importati da **YouTube** e dagli altri siti supportati da yt-dlp, con avanzamento del download), con **playlist** e ricerca.
 - **Progetti**: timeline multitraccia salvate, separate dalla libreria. Trascini i brani nella timeline e li tieni interi o ne separi le tracce.
 - **Scalette**: elenchi ordinati di progetti da suonare in sequenza, con pausa configurabile tra un brano e l'altro (o attesa del Play), avanzamento automatico e barra con posizione e brano successivo.
-- **Impostazioni salvate automaticamente** per progetto (tonalità, velocità, volumi, muto/solo, selezione, loop), con **Reimposta** per tornare all'originale.
+- **Impostazioni salvate automaticamente** per progetto (tonalità, velocità, volumi, muto/solo, selezione, loop), con **Reimposta** per tornare all'originale, e **salvataggi** con un nome da richiamare e condividere.
 
 ### Separazione e mixer
 - **Separazione delle tracce** con [Demucs v4](https://github.com/facebookresearch/demucs): 4 tracce (voce, batteria, basso, altro), 4 tracce in alta qualità, oppure 6 tracce (+ chitarra e piano). Si avvia dal menu ⋯ della traccia, quando vuoi tu.
@@ -57,7 +57,11 @@ click intelligente ed esportazione di basi.
 
 ### Pratica e registrazione
 - **Sezioni salvate**: dai un nome a una porzione del brano (per esempio "Assolo 1") e richiamala con un clic dal pulsante **Sezioni ▾**: viene selezionata con il loop già attivo e la testina all'inizio. Le sezioni sono salvate nel progetto e restano al loro posto a ogni velocità.
-- **Regolazione fine del loop**: inizio e fine si spostano di 0,1 s (`Shift`: 0,01 s, tenendo premuto scorrono) oppure al **click precedente o successivo**, anche mentre suona.
+- **Loop al volo**: durante l'ascolto `I` fissa l'inizio (l'area verde cresce mentre il brano va avanti) e `O` la fine, con il loop già attivo; gli stessi comandi sono nella barra (**[ I**, **O ]**).
+- **Regolazione fine del loop**: i bordi si trascinano con il mouse (con `Ctrl` si agganciano al click), oppure si spostano di 0,1 s (`Shift`: 0,01 s, tenendo premuto scorrono) o al **click precedente o successivo**, anche mentre suona.
+- **Linee delle battute** nella timeline, che seguono il tempo del click (casella **Battute**).
+- **Salvataggi**: fotografie con un nome dello stato del progetto (tonalità, velocità, volumi, muto/solo di tracce e cartelle, master, selezione e loop), per esempio *Assolo in loop* o *Solo voce*. Si richiamano dal pulsante **💾 ▾**; quello in uso raccoglie da solo le modifiche successive.
+- **Link pubblici**: un salvataggio diventa una pagina da condividere sui social, senza accesso, che riproduce il mix con il suo loop, la sua tonalità e la sua velocità. Nella stessa pagina si possono includere altri salvataggi tra cui scegliere; i link seguono le modifiche ai salvataggi e si disattivano quando vuoi.
 - **Registrazione di una traccia** dal microfono o dalla scheda audio mentre il progetto suona: traccia vuota da **＋ Aggiungi traccia → ⏺ Registra**, scelta dell'ingresso e dei canali (1, 2 o stereo), **VU meter**, **forma d'onda dal vivo** e compensazione automatica della latenza. Le nuove riprese sulla stessa traccia sostituiscono solo il tratto rifatto.
 
 ### Analisi musicale
@@ -76,7 +80,7 @@ click intelligente ed esportazione di basi.
 - **Esportazione** in MP3, WAV, FLAC o MIDI delle sole tracce attive (per esempio la base senza voce), del progetto intero o della selezione, con **click e pre-conteggio** inclusi per creare basi.
 
 ### Account e lingua
-- **Interfaccia in italiano e in inglese**: si sceglie dal menu dell'account (🌐) o dalla schermata di accesso; la prima volta segue la lingua del browser. Anche le email di conferma e di reset arrivano nella lingua scelta.
+- **Interfaccia in italiano e in inglese**: segue la lingua del browser (italiano se il browser è in italiano, altrimenti inglese). Anche le email di conferma e di reset arrivano in quella lingua.
 - **Registrazione con verifica dell'email**, accesso, password dimenticata con reset via email, cambio password.
 - **Accesso con Google** (OAuth 2.0 / OpenID Connect con PKCE).
 - **Più utenti**: ognuno vede solo i propri brani, progetti, scalette e playlist.
@@ -133,7 +137,7 @@ Per aggiornare basta ripetere `make pull`. In alternativa `make up` costruisce l
 
 1. Installa `cloudflared` sul Raspberry e crea un tunnel dalla dashboard di Cloudflare (Zero Trust → Networks → Tunnels).
 2. Aggiungi un *public hostname*, per esempio `noises.tuodominio.it`, con servizio `http://localhost:8080`.
-3. Imposta in `.env` `PUBLIC_URL=https://noises.tuodominio.it` (serve per i link delle email, per il redirect di Google e per i cookie sicuri), poi `make pull` o `make restart`.
+3. Imposta in `.env` `PUBLIC_URL=https://noises.tuodominio.it` (serve per i link delle email, per il redirect di Google, per i cookie sicuri e per le anteprime dei link pubblici sui social), poi `make pull` o `make restart`.
 
 Per l'accesso con Google, aggiungi `https://noises.tuodominio.it/api/auth/google/callback` ai redirect URI autorizzati.
 
@@ -168,8 +172,11 @@ Le modifiche che toccano solo la documentazione e il sito (`docs/`) non avviano 
 | Avanti / indietro 5 s | `→` / `←` |
 | Selezionare una porzione | trascina sulla timeline o sul righello |
 | Loop della selezione | `L` o ⟳ Loop |
+| Creare un loop durante l'ascolto | `I` (o **[ I**) fissa l'inizio alla testina (l'area verde cresce mentre suona), `O` (o **O ]**) la fine e attiva il loop (a loop attivo spostano subito inizio e fine) |
+| Salvataggi (es. *Assolo in loop*, *Solo voce*) | **💾 Salvataggi** → *Salva lo stato attuale*: tonalità, velocità, volumi, muto/solo, selezione e loop; un clic sul nome lo richiama e lo rende *in uso*: da lì le modifiche (loop, sezioni, volumi, velocità…) vengono salvate dentro quel salvataggio, e i suoi link pubblici si aggiornano. *Esci dal salvataggio* per lavorare senza toccarne nessuno |
+| Link pubblico da condividere | **🔗 Condividi** (o 🔗 accanto a un salvataggio): pagina senza accesso che riproduce il mix con il suo loop; nella finestra si possono includere altri salvataggi da scegliere nella pagina; *Disattiva link* per revocarlo |
 | Salvare la selezione come sezione / richiamarla | **＋ Salva sezione** · **Sezioni ▾** |
-| Regolare inizio e fine del loop | ‹ › (0,1 s, `Shift`: 0,01 s) · « » (click precedente/successivo) |
+| Regolare inizio e fine del loop | trascina i bordi della selezione (`Ctrl`: aggancio al click) · ‹ › (0,1 s, `Shift`: 0,01 s) · « » (click precedente/successivo) |
 | Registrare una traccia | traccia vuota da **＋ Aggiungi traccia → ⏺ Registra**, poi `R` o ⏺ nel trasporto; pausa o stop per fermare |
 | Annullare selezione / chiudere i menu | `Esc` |
 | Tagliare le clip selezionate alla testina | `X` |
@@ -178,6 +185,7 @@ Le modifiche che toccano solo la documentazione e il sito (`docs/`) non avviano 
 | Raggruppare / sciogliere le tracce selezionate | `Ctrl+G` / `Ctrl+Shift+G` |
 | Riordinare le tracce | trascina la maniglia ⠿, oppure `Alt+↑` / `Alt+↓` |
 | Segnalibri | `M` per aggiungere, `,` e `.` per il precedente e il successivo (anche ‹ ＋ › nella corsia) |
+| Linee delle battute nella timeline | casella **Battute** accanto a *Segui* (serve l'analisi del ritmo) |
 | Zoom | `Ctrl` + rotella, pinch, slider, oppure i bordi del riquadro nella panoramica |
 | Scorrere | trascina il riquadro della panoramica, `Shift` + rotella, trackpad |
 | Separare, rinominare, duplicare, esportare, eliminare una traccia | menu **⋯** della traccia |
@@ -221,7 +229,7 @@ Tutte le variabili si possono impostare in `.env` (vedi [`.env.example`](.env.ex
 |---|---|---|
 | `NOISES_IMAGE` | `noises:latest` | immagine da usare: quella costruita in locale o quella della CI (`ghcr.io/teopost/noises:latest`) |
 | `NOISES_PORT` | `8080` | porta esposta |
-| `PUBLIC_URL` | `http://localhost:8080` | URL pubblico, usato nei link delle email e nel redirect di Google |
+| `PUBLIC_URL` | `http://localhost:8080` | URL pubblico, usato nei link delle email, nel redirect di Google e nelle anteprime dei link pubblici |
 | `EMAIL_VERIFICATION` | `true` | richiede la conferma dell'email alla registrazione |
 | `ALLOW_REGISTRATION` | `true` | consente nuove registrazioni |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | — | attivano l'accesso con Google |
@@ -273,6 +281,8 @@ Tutto sta nel volume Docker `noises-data` (`/data`):
 ├── noises.db                 # utenti, sessioni, token (SQLite)
 ├── playlists.json
 ├── setlists.json             # scalette
+├── shares.json               # link pubblici
+├── shares/*.mp3              # mix preparati per i link pubblici
 ├── projects/<id>.json        # progetti: tracce, clip, gruppi, segnalibri, impostazioni
 └── songs/<id>/
     ├── meta.json             # stato, proprietario, metro, regolazione del click
@@ -286,7 +296,7 @@ Tutto sta nel volume Docker `noises-data` (`/data`):
 
 ## API
 
-Tutte le API sotto `/api` (tranne `/api/auth/*` e `/api/health`) richiedono una sessione valida e operano solo sulle risorse dell'utente.
+Tutte le API sotto `/api` (tranne `/api/auth/*`, `/api/public/*` e `/api/health`) richiedono una sessione valida e operano solo sulle risorse dell'utente.
 
 <details>
 <summary>Elenco degli endpoint</summary>
@@ -314,6 +324,9 @@ Tutte le API sotto `/api` (tranne `/api/auth/*` e `/api/health`) richiedono una 
 | `GET` `PUT` `DELETE` | `/api/projects/:id` | progetto: tracce, clip, gruppi, segnalibri |
 | `PUT` `DELETE` | `/api/projects/:id/settings` | impostazioni del mixer |
 | `POST` | `/api/projects/:id/export` | mix delle tracce attive, con click e pre-conteggio opzionali |
+| `GET` `POST` | `/api/projects/:id/shares` | link pubblici del progetto: elenco, creazione o aggiornamento (`DELETE …/:token`) |
+| `GET` | `/api/public/:token` · `/api/public/:token/audio?mix=` | **senza accesso**: dati e audio di un link pubblico |
+| `GET` | `/s/:token` | **senza accesso**: pagina condivisa, con le anteprime per i social |
 | `GET` `POST` | `/api/setlists` | scalette (`PUT`/`DELETE /:id`) |
 | `GET` `POST` | `/api/playlists` | playlist (`PATCH`/`DELETE /:id`, `PUT`/`DELETE /:id/songs/:song`) |
 

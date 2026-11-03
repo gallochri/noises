@@ -17,7 +17,7 @@ const AUDIO_RE = /\.(mp3|wav|flac|ogg|oga|m4a|aac|opus|aiff?|wma|webm|mp4|caf)$/
 async function addAudioFiles(files, startDisplay) {
   const audio = files.filter((f) => f.type.startsWith('audio/') || AUDIO_RE.test(f.name));
   const rejected = files.filter((f) => !audio.includes(f));
-  if (rejected.length) alert(`Non sono file audio: ${rejected.map((f) => f.name).join(', ')}`);
+  if (rejected.length) uiAlert(`Non sono file audio: ${rejected.map((f) => f.name).join(', ')}`);
   let at = startDisplay;
   for (const f of audio) {
     try {
@@ -28,7 +28,7 @@ async function addAudioFiles(files, startDisplay) {
       await addSongToProject(song.id, at);
       at = null; // i file successivi partono dalla testina
     } catch (e) {
-      alert(`Caricamento di "${f.name}" fallito: ${e.message}`);
+      uiAlert(`Caricamento di "${f.name}" fallito: ${e.message}`);
     } finally {
       setLoader(null);
     }

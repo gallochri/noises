@@ -44,6 +44,19 @@ pub struct Region {
     pub end: f64,
 }
 
+/// Salvataggio con un nome (es. "Assolo in loop", "Solo voce"): una fotografia delle impostazioni
+/// del mixer (tonalità, velocità, volumi, muto/solo, selezione e loop) da richiamare in seguito.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Preset {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub created_at: u64,
+    #[serde(default)]
+    pub updated_at: u64,
+    pub settings: serde_json::Value,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Project {
     pub id: String,
@@ -61,6 +74,8 @@ pub struct Project {
     pub markers: Vec<Marker>,
     #[serde(default)]
     pub regions: Vec<Region>,
+    #[serde(default)]
+    pub presets: Vec<Preset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub settings: Option<serde_json::Value>,
 }
@@ -112,7 +127,7 @@ pub fn owns(st: &AppState, user_id: &str, pid: &str) -> bool {
         .is_some_and(|p| p.owner.as_deref() == Some(user_id))
 }
 
-fn get(st: &AppState, pid: &str) -> Result<Project, AppError> {
+pub(crate) fn get(st: &AppState, pid: &str) -> Result<Project, AppError> {
     st.0.projects.read().unwrap().get(pid).cloned().ok_or_else(not_found)
 }
 
@@ -202,6 +217,7 @@ pub async fn create(
         groups: vec![],
         markers: vec![],
         regions: vec![],
+        presets: vec![],
         settings: None,
     };
     Ok(Json(store(&st, p)?))
@@ -221,6 +237,9 @@ pub struct StateBody {
     markers: Vec<Marker>,
     #[serde(default)]
     regions: Vec<Region>,
+    /// assente = salvataggi invariati
+    #[serde(default)]
+    presets: Option<Vec<Preset>>,
 }
 
 /// Salva lo stato dell'editor (tracce con le loro clip, gruppi, segnalibri, nome).
@@ -275,6 +294,28 @@ pub async fn put_state(
     p.markers.sort_by(|a, c| a.t.total_cmp(&c.t));
     p.regions = b.regions.into_iter().map(|mut r| { r.name = r.name.trim().chars().take(60).collect(); r }).collect();
     p.regions.sort_by(|a, c| a.start.total_cmp(&c.start));
+    if let Some(presets) = b.presets {
+        let ok = presets.len() <= 100
+            && presets.iter().all(|x| {
+                !x.id.is_empty()
+                    && x.id.len() <= 32
+                    && x.settings.is_object()
+                    && serde_json::to_vec(&x.settings).map_or(false, |v| v.len() <= 64 * 1024)
+            });
+        if !ok {
+            return Err(bad_request("salvataggi non validi"));
+        }
+        p.presets = presets
+            .into_iter()
+            .map(|mut x| {
+                x.name = x.name.trim().chars().take(60).collect();
+                if x.name.is_empty() {
+                    x.name = "Salvataggio".into();
+                }
+                x
+            })
+            .collect();
+    }
     store(&st, p)?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -307,6 +348,7 @@ pub async fn delete(State(st): State<AppState>, UrlPath(pid): UrlPath<String>) -
     let _ = tokio::fs::remove_file(project_path(&st, &pid)).await;
     let _ = tokio::fs::remove_dir_all(st.0.data_dir.join("projects").join(&pid)).await;
     crate::setlists::forget_project(&st, &pid);
+    crate::shares::forget_project(&st, &pid);
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -460,6 +502,7 @@ pub fn migrate(st: &AppState) {
             groups,
             markers: song.markers.clone(),
             regions: vec![],
+            presets: vec![],
             settings: song.settings.clone(),
         };
         if save_project(st, &p).is_ok() {

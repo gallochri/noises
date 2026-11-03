@@ -113,10 +113,10 @@ function inputError(e) {
   state.recTarget = null;
   syncTrackButtons();
   closeInput();
-  if (e.message === 'insecure') alert('La registrazione richiede una pagina sicura (HTTPS o localhost) e un browser con accesso all\'audio in ingresso.');
-  else if (e.name === 'NotAllowedError') alert('Accesso all\'ingresso audio negato: consentilo dalle impostazioni del browser per registrare.');
-  else if (e.name === 'NotFoundError') alert('Nessun ingresso audio trovato.');
-  else alert(`Impossibile aprire l'ingresso audio: ${e.message}`);
+  if (e.message === 'insecure') uiAlert('La registrazione richiede una pagina sicura (HTTPS o localhost) e un browser con accesso all\'audio in ingresso.');
+  else if (e.name === 'NotAllowedError') uiAlert('Accesso all\'ingresso audio negato: consentilo dalle impostazioni del browser per registrare.');
+  else if (e.name === 'NotFoundError') uiAlert('Nessun ingresso audio trovato.');
+  else uiAlert(`Impossibile aprire l'ingresso audio: ${e.message}`);
 }
 
 async function refreshInputDevices() {
@@ -296,7 +296,7 @@ async function stopRecording() {
     }
     await saveRecording(l, r, stereo, startPos, target);
   } catch (e) {
-    alert(`Salvataggio della registrazione fallito: ${e.message}`);
+    uiAlert(`Salvataggio della registrazione fallito: ${e.message}`);
   } finally {
     cleanupRecording();
     rec.busy = false;

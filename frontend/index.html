@@ -6,7 +6,7 @@
   <title>Noises — Stem Splitter</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="auth-open">
   <div id="auth" class="auth hidden">
     <div class="auth-card">
       <div class="brand big"><span class="logo">◉</span> Noises</div>
@@ -55,7 +55,6 @@
           Accedi con Google
         </a>
       </div>
-      <div class="auth-lang"><button type="button" class="link lang-btn">🌐 English</button></div>
     </div>
   </div>
 
@@ -74,7 +73,6 @@
       <span id="user-badges" class="count"></span>
     </div>
     <button id="change-pw" class="menu-item"><span class="emo">🔑</span> Password…</button>
-    <button class="menu-item lang-btn">🌐 English</button>
     <button id="logout" class="menu-item">⎋ Esci</button>
   </div>
 
@@ -180,11 +178,9 @@
       </div>
       <header class="song-head">
         <input id="title" class="project-title" maxlength="80" title="Nome del progetto (clic per modificare)">
-        <div id="chord-now" class="chord-now hidden" title="Accordo corrente → successivo">
-          <span id="cn-cur" class="cn-cur">–</span>
-          <span class="cn-next">→ <span id="cn-next"></span></span>
-        </div>
         <div class="actions">
+          <span id="presets-split" class="split-btn"><button id="presets-btn" class="presets-btn" title="Salvataggi: stati del progetto con un nome da richiamare (loop, solo voce…)">💾 Salvataggi</button><button id="presets-cfg" class="split-caret" title="Elenco dei salvataggi" aria-label="Elenco dei salvataggi">▾</button></span>
+          <button id="share-btn" title="Crea un link pubblico per far ascoltare il salvataggio in uso">🔗 Condividi</button>
           <button id="reset-all" title="Ripristina tutte le impostazioni originali (le impostazioni si salvano automaticamente)">↺ Reimposta</button>
           <button id="export" class="primary" title="Esporta le tracce attive">⤓ Esporta</button>
         </div>
@@ -266,9 +262,16 @@
           </div>
         </div>
 
+        <div class="bar-end">
+        <div id="chord-now" class="chord-now hidden" title="Accordo corrente → successivo">
+          <span id="cn-cur" class="cn-cur">–</span>
+          <span class="cn-next">→ <span id="cn-next"></span></span>
+        </div>
+
         <div class="knob master" title="Volume generale (master)">
           <span class="master-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
           <input id="master" type="range" min="0" max="1.5" step="0.01" value="1">
+        </div>
         </div>
       </div>
 
@@ -287,6 +290,10 @@
           <button data-edge="end" data-dir="-1" title="Anticipa la fine di 0,1 s (Shift: 0,01 s)">‹</button>
           <button data-edge="end" data-dir="1" title="Ritarda la fine di 0,1 s (Shift: 0,01 s)">›</button>
           <button data-edge="end" data-dir="1" data-beat class="beat" title="Fine al click successivo">»</button>
+        </span>
+        <span class="loop-marks">
+          <button id="loop-in" title="Fissa l'inizio del loop alla posizione della testina (I)">[ I</button>
+          <button id="loop-out" title="Fissa la fine del loop alla posizione della testina e attiva il loop (O)">O ]</button>
         </span>
         <button id="sel-clear" class="ghost" title="Annulla selezione (Esc)">✕</button>
         <button id="sel-save" class="hidden">＋ Salva sezione</button>
@@ -307,6 +314,7 @@
           <output id="zoom-val"></output>
           <button id="zoom-fit" title="Adatta il brano alla finestra">⤢ Adatta</button>
           <label class="follow" title="Scorre automaticamente seguendo la riproduzione"><input id="follow" type="checkbox" checked> Segui</label>
+          <label class="follow" title="Mostra nella timeline le linee delle battute secondo il tempo del click (serve l'analisi del ritmo)"><input id="bar-lines" type="checkbox"> Battute</label>
         </div>
       </div>
 
@@ -416,6 +424,36 @@
   <div id="chord-menu" class="menu chord-menu hidden"></div>
   <div id="track-menu" class="menu track-menu hidden"></div>
   <div id="regions-menu" class="menu regions-menu hidden"></div>
+  <div id="presets-menu" class="menu regions-menu presets-menu hidden"></div>
+  <dialog id="share-dlg" class="share-dlg">
+    <form method="dialog">
+      <h2>Link pubblico</h2>
+      <p class="share-what" id="share-what"></p>
+      <p class="hint">Chiunque abbia il link può ascoltare questo salvataggio (mix, tonalità, velocità e loop), senza accedere a Noises. Le tracce originali non vengono condivise.</p>
+      <div id="share-extra" class="field share-extra hidden">
+        <span>Altri salvataggi da poter scegliere nella pagina</span>
+        <div id="share-extra-list" class="share-extra-list"></div>
+      </div>
+      <div class="share-row">
+        <input id="share-url" type="text" readonly aria-label="Link pubblico">
+        <button type="button" id="share-copy" class="primary">Copia</button>
+      </div>
+      <div class="share-nets">
+        <a data-net="whatsapp" target="_blank" rel="noopener">WhatsApp</a>
+        <a data-net="telegram" target="_blank" rel="noopener">Telegram</a>
+        <a data-net="facebook" target="_blank" rel="noopener">Facebook</a>
+        <a data-net="x" target="_blank" rel="noopener">X</a>
+        <a data-net="email">Email</a>
+        <button type="button" id="share-native" class="hidden">Altro…</button>
+      </div>
+      <menu>
+        <button type="button" id="share-off" class="ghost danger-text">Disattiva link</button>
+        <span class="spacer"></span>
+        <button type="button" id="share-open">Apri la pagina</button>
+        <button value="cancel" formnovalidate>Chiudi</button>
+      </menu>
+    </form>
+  </dialog>
   <div id="marker-menu" class="menu marker-menu hidden"></div>
 
   <dialog id="export-dlg">
@@ -543,11 +581,13 @@
 
   <script src="vendor/opensheetmusicdisplay.min.js" defer></script>
   <script src="i18n.js"></script>
+  <script src="dialogs.js"></script>
   <script src="auth.js"></script>
   <script src="notes.js"></script>
   <script src="score.js"></script>
   <script src="markers.js"></script>
   <script src="sections.js"></script>
+  <script src="presets.js"></script>
   <script src="usertracks.js"></script>
   <script src="recorder.js"></script>
   <script src="editor.js"></script>

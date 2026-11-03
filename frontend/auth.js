@@ -228,10 +228,12 @@ async function boot() {
   if (err || verified) history.replaceState(null, '', '/');
   try {
     authState.user = await api('/api/auth/me');
-    enterApp();
-    if (verified) setTimeout(() => alert('Email confermata: benvenuto in Noises!'), 300);
   } catch {
     showAuth('login');
     if (err) authMessage(AUTH_ERRORS[err] || 'Accesso non riuscito.', 'error');
+    return;
   }
+  // un errore all'avvio dell'app non deve sembrare un'uscita dall'account
+  enterApp();
+  if (verified) setTimeout(() => uiAlert('Email confermata: benvenuto in Noises!'), 300);
 }

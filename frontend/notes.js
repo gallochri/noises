@@ -411,14 +411,14 @@ function saveNotes(stem) {
         body: JSON.stringify({ notes: state.notes.tracks[stem] }),
       });
     } catch (e) {
-      alert(`Salvataggio note fallito: ${e.message}`);
+      uiAlert(`Salvataggio note fallito: ${e.message}`);
     }
   }, 500);
 }
 
 async function restoreNotes(stem) {
   const song = state.refSong;
-  if (!confirm(`Annullare le correzioni e ripristinare la trascrizione automatica di "${LABELS[stem] || stem}"?`)) return;
+  if (!(await uiConfirm(`Annullare le correzioni e ripristinare la trascrizione automatica di "${LABELS[stem] || stem}"?`, { ok: 'Ripristina', danger: true }))) return;
   clearTimeout(noteSaveTimers[stem]);
   try {
     const data = await api(`/api/songs/${song.id}/notes/${stem}/edits`, { method: 'DELETE' });
@@ -430,7 +430,7 @@ async function restoreNotes(stem) {
     layoutRoll(stem);
     requestRedraw();
   } catch (e) {
-    alert(e.message);
+    uiAlert(e.message);
   }
 }
 
@@ -1161,7 +1161,7 @@ async function setRhythm(patch) {
     requestRedraw();
     if (!$('#score-view').classList.contains('hidden')) loadScore();
   } catch (e) {
-    alert(e.message);
+    uiAlert(e.message);
   }
 }
 
@@ -1238,7 +1238,7 @@ const textEvent = (type, s) => {
  */
 function exportMidi(filename, range) {
   if (!state.notes) {
-    alert('La trascrizione non è ancora pronta.');
+    uiAlert('La trascrizione non è ancora pronta.');
     return;
   }
   const PPQ = 480;
@@ -1268,7 +1268,7 @@ function exportMidi(filename, range) {
 
   const active = activeStems().map((t) => t.name).filter((s) => (state.notes.tracks[s] || []).length);
   if (!active.length) {
-    alert('Nessuna traccia attiva con note trascritte.');
+    uiAlert('Nessuna traccia attiva con note trascritte.');
     return;
   }
   let ch = 0;
